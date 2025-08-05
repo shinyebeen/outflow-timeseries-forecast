@@ -4,6 +4,7 @@ import numpy as np
 
 from statsmodels.tsa.stattools import acf, pacf
 from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.seasonal import seasonal_decompose
 from scipy.fft import fft, fftfreq
 
 from utils.singleton import Singleton
@@ -84,12 +85,12 @@ class DataProcessor(metaclass = Singleton):
             'total_conservative' : total_conservative
         }
     
-    def delete_outliers(self, series):
+    def delete_outliers(self, series, mode):
         temp = series.copy()
-        temp[(temp < st.session_state.outliers['lower_standard'])|(temp > st.session_state.outliers['upper_standard'])]= np.nan
-        st.session_state.cleaned_series = temp.interpolate(method='time').fillna('ffill').fillna('bfill')
+        temp[(temp < st.session_state.outliers['lower_'+mode])|(temp > st.session_state.outliers['upper_'+mode])] = np.nan
+        cleaned_series = temp.interpolate(method='time').fillna('ffill').fillna('bfill')
 
-        return None
+        return cleaned_series
     
     def get_acf_pacf(self, 
                     series: pd.Series, 
@@ -161,6 +162,34 @@ class DataProcessor(metaclass = Singleton):
             'top_freq_idx' : top_freq_idx
         }
     
+    def decompose_timeseries(self, series: pd.Series, period):
+        one_day = int(24*st.session_state.records_per_hour)
+
+        if len(series) >= one_day: # 최소 하루치 이상의 데이터
+            try:
+                # 주기 자동 감지 또는 기본값 사용
+                period = min(one_day, len(series)//2)
+                decomposition = seasonal_decompose(series, model='additive', period=period)
+                # return {
+                #     'original' : decomposition.observed,
+                #     'trend' : decomposition.trend,
+                #     'seasonal' : decomposition.seasonal,
+                #     'residual' : decomposition.resid
+                # }
+                return {
+                    'observed': decomposition.observed.tolist(),
+                    'trend': decomposition.trend.tolist(),
+                    'seasonal': decomposition.seasonal.tolist(),
+                    'resid': decomposition.resid.tolist(),
+                    'index': decomposition.observed.index.astype(str).tolist()  # datetime index도 string으로
+                }
+            
+            except Exception as e:
+                return None
+        else:
+            return None
+            
+    
 
 @st.cache_data(ttl=3600)
 def cached_preprocess_data(df, target_col):
@@ -184,9 +213,9 @@ def cached_analyze_outliers(series):
     return processor.analyze_outliers(series)
 
 @st.cache_data(ttl=3600)
-def cached_delete_outliers(series):
+def cached_delete_outliers(series, mode):
     processor = DataProcessor()
-    return processor.delete_outliers(series)
+    return processor.delete_outliers(series, mode)
 
 @st.cache_data(ttl=3600)
 def cached_get_acf_pacf(series, nlags=40):
@@ -205,3 +234,9 @@ def cached_get_fft(series):
     """고속푸리에변환 결과 캐싱"""
     processor = DataProcessor()
     return processor.get_fft(series)
+
+@st.cache_data(ttl=3600)
+def cached_decompose_timeseries(series, period):
+    """계절성 분해 결과 캐싱"""
+    processor = DataProcessor()
+    return processor.decompose_timeseries(series, period)

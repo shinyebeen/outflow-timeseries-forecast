@@ -15,6 +15,13 @@ def initialize_session_state():
     if 'target' not in st.session_state:
         st.session_state.target = None
 
+    if 'start_date' not in st.session_state:
+        st.session_state.start_date = None 
+    if 'end_date' not in st.session_state:
+        st.session_state.end_date = None 
+    if 'records_per_hour' not in st.session_state:
+        st.session_state.records_per_hour = None
+
     # 시계열 데이터 변수 
     if 'series' not in st.session_state:
         st.session_state.series = None
@@ -38,6 +45,8 @@ def initialize_session_state():
         st.session_state.upper_conservative = None
     if 'outliers' not in st.session_state:
         st.session_state.outliers = {}
+    if 'cleaned_series' not in st.session_state:
+        st.session_state.cleaned_series = None
 
     # 정상성 및 ACF/PACF 관련 변수들
     if 'stationarity_result' not in st.session_state:
@@ -112,6 +121,7 @@ def reset_data_results():
     모델 결과도 함께 초기화합니다.(reset_model_results 호출)
     """
     st.session_state.series = None
+    st.session_state.cleaned_series = None
     st.session_state.train = None
     st.session_state.test = None
     st.session_state.decomposition = None

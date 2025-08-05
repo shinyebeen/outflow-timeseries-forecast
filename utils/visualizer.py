@@ -288,6 +288,59 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         fig.update_yaxes(title_text='Power (log)', row=1, col=2)
 
         return fig
+    
+
+
+
+
+    def plot_decomposition(self, 
+                           decomposition,
+                           color: str = '#1f77b4')  -> go.Figure:
+        """
+        계절성 분해 결과를 Plotly로 시각화하는 함수
+        
+        Parameters:
+        -----------
+        decomposition : statsmodels.tsa.seasonal.DecomposeResult
+            seasonal_decompose() 결과 객체
+        target_name : str
+            대상 변수명 (기본값: 'Target Variable')
+        title : str
+            전체 제목 (기본값: None - 자동 생성)
+        height : int
+            전체 그래프 높이 (기본값: 800)
+        color : str
+            선 색상 (기본값: '#1f77b4')
+        
+        Returns:
+        --------
+        go.Figure : Plotly Figure 객체
+        """
+        
+        # 리스트를 다시 pandas.Series로 복원
+        index = pd.to_datetime(decomposition['index'])
+
+        observed = pd.Series(decomposition['observed'], index=index)
+        trend = pd.Series(decomposition['trend'], index=index)
+        seasonal = pd.Series(decomposition['seasonal'], index=index)
+        resid = pd.Series(decomposition['resid'], index=index)
+
+        # 4행 1열 subplot 생성
+        fig = make_subplots(rows=4, cols=1, shared_xaxes=True,
+                            subplot_titles=["Observed", "Trend", "Seasonal", "Residual"])
+
+        fig.add_trace(go.Scatter(x=index, y=observed, mode='lines', name='Observed'),
+                    row=1, col=1)
+        fig.add_trace(go.Scatter(x=index, y=trend, mode='lines', name='Trend'),
+                    row=2, col=1)
+        fig.add_trace(go.Scatter(x=index, y=seasonal, mode='lines', name='Seasonal'),
+                    row=3, col=1)
+        fig.add_trace(go.Scatter(x=index, y=resid, mode='lines', name='Residual'),
+                    row=4, col=1)
+
+        fig.update_layout(height=800, showlegend=False, margin=dict(t=40, b=40))
+        return fig
+
 
 @st.cache_data(ttl=3600)
 def cached_plot_timeseries(data, title, xlabel, ylabel, color='#1f77b4'):
@@ -316,3 +369,9 @@ def cached_plot_fft(fft_result):
     """TTF 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_fft(fft_result)
+
+@st.cache_data(ttl=3600)
+def cached_plot_decomposition(decomposition):
+    """계절성 분해 그래프 캐싱"""
+    viz = TimeSeriesVisualizer()
+    return viz.plot_decomposition(decomposition)

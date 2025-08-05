@@ -16,7 +16,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     stats_df = st.session_state.series.describe().to_frame().T
     st.dataframe(stats_df, use_container_width=True)
 
-    fig = visualize_timeseries()
+    fig = visualize_timeseries(st.session_state.series, st.session_state.target)
     if fig:
         st.plotly_chart(fig, use_container_width=True, theme="streamlit")
     else:

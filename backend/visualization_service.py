@@ -6,19 +6,20 @@ import streamlit as st
 from utils.visualizer import (cached_plot_timeseries, 
                               cached_boxplot, 
                               cached_plot_acf_pacf,
-                              cached_plot_fft)
+                              cached_plot_fft,
+                              cached_plot_decomposition)
 
-def visualize_timeseries():
+def visualize_timeseries(series, target):
     """
     시계열 데이터를 시각화합니다.
     :return: Plotly Figure 객체
     """
-    if st.session_state.series is not None:
+    if series is not None:
         fig = cached_plot_timeseries(
-            data=st.session_state.series,
-            title=f"{st.session_state.target} 데이터 시각화",
+            data=series,
+            title=f"{target} 데이터 시각화",
             xlabel="측정 시간",
-            ylabel=st.session_state.target
+            ylabel=target
         )
         return fig
     
@@ -59,3 +60,8 @@ def visualize_fft():
     if st.session_state.fft_result is not None:
         fft_fig = cached_plot_fft(st.session_state.fft_result)
         return fft_fig
+    
+def visualize_decomposition():
+    if st.session_state.decomposition is not None:
+        decomposition_fig = cached_plot_decomposition(st.session_state.decomposition)
+        return decomposition_fig
