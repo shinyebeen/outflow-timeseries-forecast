@@ -134,3 +134,17 @@ def render_data_outliers(mode = 'standard'):
                 )
     with st.expander(mode+" 기준 이상치 데이터 보기"):
         st.dataframe(st.session_state.series[(st.session_state.series < st.session_state.outliers['lower_'+mode]) | (st.session_state.series > st.session_state.outliers['upper_'+mode])])
+
+def render_model_selector():
+    """
+    모델 선택 UI 렌더링
+
+    Args:
+
+    
+    Returns:
+        선택된 모델 목록, 모델 복잡도
+    """
+
+    with st.expander("모델 선택 및 설정", not st.session_state.models_trained):
+        available_models = None # Model Factory 제작 먼저!
