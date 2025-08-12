@@ -135,7 +135,7 @@ def render_data_outliers(mode = 'standard'):
     with st.expander(mode+" 기준 이상치 데이터 보기"):
         st.dataframe(st.session_state.series[(st.session_state.series < st.session_state.outliers['lower_'+mode]) | (st.session_state.series > st.session_state.outliers['upper_'+mode])])
 
-def render_model_selector():
+def render_model_selector(model_factory):
     """
     모델 선택 UI 렌더링
 
@@ -146,5 +146,19 @@ def render_model_selector():
         선택된 모델 목록, 모델 복잡도
     """
 
-    with st.expander("모델 선택 및 설정", not st.session_state.models_trained):
-        available_models = None # Model Factory 제작 먼저!
+    with st.expander("모델 선택 및 설정", not st.session_state.trained_models):
+        available_models = model_factory.get_all_available_models()
+
+        selected_models = st.multiselect(
+            "사용할 모델 선택",
+            available_models,
+            default=available_models[:] if not st.session_state.selected_models else st.session_state.selected_models 
+        )
+
+        # 베이지안 최적화(optuna) 반복 횟수 
+        strategy = st.radio(
+            "베이지안 최적화 반복 횟수",
+            ["quick(모든 모델 10회)", "balanced(모든 모델 20회)", "thorough(모든 모델 50회)", "smart(모든 모델 5회 후 상위 두 개 모델에 대해 30회)", 'custom(사용자 지정)']
+        )
+
+        return selected_models, strategy 

@@ -10,7 +10,17 @@ def get_prophet():
     return None 
 
 def get_lstm():
-    return None 
+    try:
+        from models.lstm_model import LSTMModel, TF_AVAILABLE
+        if TF_AVAILABLE:
+            return LSTMModel
+        else:
+            warnings.warn("TensorFlow 라이브러리가 설치되지 않았습니다.")
+            return None
+        
+    except ImportError as e:
+        warnings.warn(f"LSTM 모델을 가져올 수 없습니다: {e}")
+        
 
 def get_xgb():
     return None 

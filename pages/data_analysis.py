@@ -267,11 +267,6 @@ if st.session_state.series is not None:
             st.markdown("### Frequency Analysis")
             st.markdown("#### Major frequency components (Top 3)")
 
-            # for i, idx in enumerate(st.session_state.fft_result['top_freq_idx'][-3:]):
-            #     freq = st.session_state.fft_result['freqs'][idx]
-            #     period = 1 / freq if freq > 0 else float('inf')
-            #     st.text(f"  {i + 1}. Frequency: {freq:.6f}, Period: {period:.2f} hours")
-
             # 상위 3개 주파수 성분 정보 저장
             top_freq_data = []
 

@@ -65,16 +65,16 @@ def initialize_session_state():
         st.session_state.forecasts = None
     if 'metrics' not in st.session_state:
         st.session_state.metrics = None 
-    if 'model_trained' not in st.session_state:
-        st.session_state.model_trained = None
-    if 'selected_model' not in st.session_state:
-        st.session_state.selected_model = None
+    if 'trained_models' not in st.session_state:
+        st.session_state.trained_models = None
+    if 'selected_models' not in st.session_state:
+        st.session_state.selected_models = None
     if 'test_size' not in st.session_state:
         st.session_state.test_size = app_config.DEFAULT_TEST_SIZE
     if 'best_model' not in st.session_state:
         st.session_state.best_model = None
-    if 'complexity' not in st.session_state:
-        st.session_state.complexity = 'smart'
+    if 'strategy' not in st.session_state:
+        st.session_state.strategy = 'smart'
 
     # 사용자 선택 변경 추적 변수 
     if 'active_page' not in st.session_state:

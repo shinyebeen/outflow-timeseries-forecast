@@ -9,6 +9,8 @@ from scipy.fft import fft, fftfreq
 
 from utils.singleton import Singleton
 
+from config.settings import app_config
+
 class DataProcessor(metaclass = Singleton):
     """
     시계열 데이터 전처리 클래스 
@@ -162,6 +164,83 @@ class DataProcessor(metaclass = Singleton):
             'top_freq_idx' : top_freq_idx
         }
     
+    def perform_differencing(self, series: pd.Series, diff_order: int = 1, seasonal_diff_order: int = 0, seasonal_period: int = None) -> pd.Series:
+        """
+        시계열 데이터에 차분을 적용합니다.
+        
+        Args:
+            series: 차분할 시계열 데이터
+            diff_order: 일반 차분 차수 (기본값: 1)
+            seasonal_diff_order: 계절 차분 차수 (기본값: 0)
+            seasonal_period: 계절성 주기 (None인 경우 계절 차분 미적용)
+            
+        Returns:
+            차분된 시계열 데이터
+        """
+        differenced_series = series.copy()
+        
+        # 계절 차분 적용 (seasonal_period가 있는 경우)
+        if seasonal_diff_order > 0 and seasonal_period is not None:
+            for _ in range(seasonal_diff_order):
+                differenced_series = differenced_series.diff(seasonal_period).dropna()
+        
+        # 일반 차분 적용
+        for _ in range(diff_order):
+            differenced_series = differenced_series.diff().dropna()
+        
+        return differenced_series
+
+    def recommend_differencing(self, series: pd.Series, acf_values: np.ndarray = None, pacf_values: np.ndarray = None) -> dict:
+        """
+        시계열 데이터의 ACF, PACF 및 정상성 검정 결과를 기반으로 차분 추천을 제공합니다.
+        
+        Args:
+            series: 시계열 데이터
+            acf_values: ACF 값 배열 (None인 경우 계산)
+            pacf_values: PACF 값 배열 (None인 경우 계산)
+            
+        Returns:
+            추천 정보를 담은 딕셔너리
+        """
+        # 정상성 검정
+        stationarity_result = self.check_stationarity(series)
+        is_stationary = stationarity_result['is_stationary']
+        
+        # ACF/PACF가 제공되지 않은 경우 계산
+        if acf_values is None or pacf_values is None:
+            acf_values, pacf_values = self.get_acf_pacf(series)
+        
+        # 초기 추천 사항
+        recommendation = {
+            'needs_differencing': not is_stationary,
+            'diff_order': 0,
+            'seasonal_diff_order': 0,
+            'seasonal_period': None,
+            'reason': []
+        }
+        
+        # 비정상이면 차분 추천
+        if not is_stationary:
+            recommendation['diff_order'] = 1
+            recommendation['reason'].append("시계열이 정상성을 만족하지 않습니다 (ADF 검정 p-value > 0.05).")
+        
+        # ACF 감소 속도가 느리면 차분 추천
+        slow_decay = all(acf_values[i] > 0.5 for i in range(1, min(5, len(acf_values))))
+        if slow_decay:
+            recommendation['diff_order'] = max(recommendation['diff_order'], 1)
+            recommendation['reason'].append("ACF가 천천히 감소하는 패턴을 보입니다 (추세 존재 가능성).")
+        
+        # 계절성 확인 (ACF에서 특정 lag에서 높은 값 발견)
+        for period in [24, 168, 720]:  # 일별(24시간), 주별(168시간), 월별(30일) 주기
+            if len(acf_values) > period and acf_values[period] > 0.3:
+                recommendation['seasonal_period'] = period
+                recommendation['seasonal_diff_order'] = 1
+                recommendation['reason'].append(f"{period}시간 주기의 계절성이 감지되었습니다.")
+                break
+        
+        return recommendation
+
+    
     def decompose_timeseries(self, series: pd.Series, period):
         one_day = int(24*st.session_state.records_per_hour)
 
@@ -170,12 +249,7 @@ class DataProcessor(metaclass = Singleton):
                 # 주기 자동 감지 또는 기본값 사용
                 period = min(one_day, len(series)//2)
                 decomposition = seasonal_decompose(series, model='additive', period=period)
-                # return {
-                #     'original' : decomposition.observed,
-                #     'trend' : decomposition.trend,
-                #     'seasonal' : decomposition.seasonal,
-                #     'residual' : decomposition.resid
-                # }
+
                 return {
                     'observed': decomposition.observed.tolist(),
                     'trend': decomposition.trend.tolist(),
@@ -188,6 +262,29 @@ class DataProcessor(metaclass = Singleton):
                 return None
         else:
             return None
+        
+    def train_test_split(self, 
+                         series: pd.Series, 
+                         test_size: float = app_config.DEFAULT_TEST_SIZE) -> tuple[pd.Series, pd.Series]:
+        """
+        시계열 데이터를 훈련 세트와 테스트 세트로 분할합니다.
+        
+        Args:
+            series: 분할할 시계열 데이터
+            test_size: 테스트 세트의 비율
+            
+        Returns:
+            (훈련 데이터, 테스트 데이터) 튜플
+        """
+        # 분할 지점 계산
+        split_idx = int(len(series) * (1 - test_size))
+        
+        # 시간 순서대로 분할
+        train = series[:split_idx]
+        test = series[split_idx:]
+        
+        return train, test
+    
             
     
 
@@ -240,3 +337,21 @@ def cached_decompose_timeseries(series, period):
     """계절성 분해 결과 캐싱"""
     processor = DataProcessor()
     return processor.decompose_timeseries(series, period)
+
+@st.cache_data(ttl=3600)
+def cached_perform_differencing(series, diff_order=1, seasonal_diff_order=0, seasonal_period=None):
+    """차분 적용 결과 캐싱"""
+    processor = DataProcessor()
+    return processor.perform_differencing(series, diff_order, seasonal_diff_order, seasonal_period)
+
+@st.cache_data(ttl=3600)
+def cached_recommend_differencing(series, acf_values=None, pacf_values=None):
+    """차분 추천 결과 캐싱"""
+    processor = DataProcessor()
+    return processor.recommend_differencing(series, acf_values, pacf_values)
+
+@st.cache_data(ttl=3600)
+def cached_train_test_split(series, test_size):
+    """훈련/테스트 분할 캐싱"""
+    processor = DataProcessor()
+    return processor.train_test_split(series, test_size)
