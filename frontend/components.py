@@ -158,7 +158,7 @@ def render_model_selector(model_factory):
         # 베이지안 최적화(optuna) 반복 횟수 
         strategy = st.radio(
             "베이지안 최적화 반복 횟수",
-            ["quick(모든 모델 10회)", "balanced(모든 모델 20회)", "thorough(모든 모델 50회)", "smart(모든 모델 5회 후 상위 두 개 모델에 대해 30회)", 'custom(사용자 지정)']
+            ["quick", "balanced", "thorough", "smart", 'custom']
         )
 
         return selected_models, strategy 

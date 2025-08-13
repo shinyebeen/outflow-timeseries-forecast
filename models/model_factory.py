@@ -22,10 +22,16 @@ def get_lstm():
         warnings.warn(f"LSTM 모델을 가져올 수 없습니다: {e}")
         
 
-def get_xgb():
-    return None 
+def get_xgboost():
+    try:
+        from models.xgboost_model import XGBoostModel
+        return XGBoostModel
+        
+    except ImportError as e:
+        warnings.warn(f"xgboost 모델을 가져올 수 없습니다: {e}")
+        
 
-def get_cat():
+def get_catboost():
     return None 
 
 class ModelFactory(metaclass = Singleton):
@@ -48,13 +54,13 @@ class ModelFactory(metaclass = Singleton):
         if lstm:
             self.avaliable_models['lstm'] = lstm 
         
-        xgb = get_xgb()
-        if xgb:
-            self.avaliable_models['xgb'] = xgb
+        xgboost = get_xgboost()
+        if xgboost:
+            self.avaliable_models['xgboost'] = xgboost
 
-        cat = get_cat()
-        if cat:
-            self.avaliable_models['cat'] = cat
+        catboost = get_catboost()
+        if catboost:
+            self.avaliable_models['catboost'] = catboost
     
     def get_model(self, model_type: str, **kwargs) -> TimeSeriesModel:
         """

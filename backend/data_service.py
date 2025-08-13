@@ -86,10 +86,10 @@ def update_series():
         )
 
         # 이전 결과와 현재 설정 비교 
-        if st.session_state.model_trained is not None:
+        if st.session_state.trained_models is not None:
             if ('prev_target' in st.session_state and 
                 st.session_state.prev_target != st.session_state.target):
-                st.session_state.model_trained = False
+                st.session_state.trained_models = False
                 st.session_state.forecasts = {}
                 st.session_state.metrics = {}
 

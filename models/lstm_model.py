@@ -176,3 +176,6 @@ class LSTMModel(TimeSeriesModel):
 
             model = self._build_model(trial, ())
 
+        except Exception as e:
+            pass
+

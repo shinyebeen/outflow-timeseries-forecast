@@ -31,6 +31,7 @@ class TimeSeriesModel(ABC):
         self.forecast_horizon = None 
         self.search_space = {}
 
+    @abstractmethod
     def _create_sequences(self, data: np.ndarray, time_step: int, forecast_horizon: int) -> tuple[np.ndarray, np.ndarray]:
         """
         시계열 데이터를 입력 시퀀스와 타겟으로 변환
@@ -45,7 +46,7 @@ class TimeSeriesModel(ABC):
         pass
 
     @abstractmethod
-    def _build_model(self, trial, input_shape):
+    def _build_model(self, trial):
         """
         Optuna가 제안하는 모델 아키텍처 구축
 
@@ -84,7 +85,7 @@ class TimeSeriesModel(ABC):
         pass   
     
     @abstractmethod
-    def fit(self, train_data: pd.Series, **kwargs) -> Any:
+    def _train_best_model(self, train_data: pd.Series, **kwargs) -> Any:
         """
         모델을 학습합니다.
         
@@ -98,7 +99,7 @@ class TimeSeriesModel(ABC):
         pass
     
     @abstractmethod
-    def predict(self, steps: int = None, test_data: Optional[pd.Series] = None) -> np.ndarray:
+    def _get_optimization_history(self, steps: int = None, test_data: Optional[pd.Series] = None) -> np.ndarray:
         """
         미래 값을 예측합니다.
         
