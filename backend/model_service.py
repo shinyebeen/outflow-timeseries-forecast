@@ -2,7 +2,7 @@
 모델 학습 및 예측 관련 서비스 모듈
 """
 import traceback
-import datetime
+from datetime import datetime
 from typing import List, Dict, Any
 
 import streamlit as st
@@ -15,8 +15,8 @@ from utils.parameter_utils import validate_model_parameters
 
 # 모델 팩토리 동적 로드
 # streamlit cache
-## cache_data : 데이터에 대한 캐싱 메커니즘
-## cache_resource : 머신러닝 모델이나 데이터베이스 컨넥션 등의 리소스의 효율적 사용을 도움
+# cache_data : 데이터에 대한 캐싱 메커니즘
+# cache_resource : 머신러닝 모델이나 데이터베이스 컨넥션 등의 리소스의 효율적 사용을 도움
 
 # 객체 생성은 한 번만, 계산 결과는 조건부로 캐싱하여 성능 최적화
 @st.cache_resource
@@ -138,6 +138,7 @@ def _smart_strategy(selected_models, verbose_level=1):
                    
         completed_models += 1
         progress_bar.progress(completed_models / len_top_models)
+    
 
     # 모든 결과 통합
     st.session_state.model_results = {**detailed_results}
@@ -194,20 +195,35 @@ def _run_all_models_equally(trials, selected_models, verbose_level):
 
     for model_name in selected_models:
         status_text.text(f"\n{model_name} 최적화 중... ({trials} trials)")
-        try:
-            optimizer, result = _run_single_model(model_name, trials, verbose_level)
-            if result:
-                st.session_state.model_results[model_name] = {
-                    'optimizer': optimizer,
-                    'result': result,
-                    'rmse': _extract_rmse(result),
-                    'status': 'success'
-                }
-                print(f"{model_name} 완료 - RMSE: {st.session_state.model_results[model_name]['rmse']:.4f}")
-            else:
-                print(f"{model_name} 실패")
-        except Exception as e:
-            print(f"{model_name} 오류: {str(e)}")
+        # try:
+        #     optimizer, result = _run_single_model(model_name, trials, verbose_level)
+        #     if result:
+        #         st.session_state.model_results[model_name] = {
+        #             'optimizer': optimizer,
+        #             'result': result,
+        #             'rmse': _extract_rmse(result),
+        #             'status': 'success'
+        #         }
+        #         print(f"{model_name} 완료 - RMSE: {st.session_state.model_results[model_name]['rmse']:.4f}")
+        #     else:
+        #         print(f"{model_name} 실패")
+        # except Exception as e:
+        #     print(f"{model_name} 오류: {str(e)}")
+
+        optimizer, result = _run_single_model(model_name, trials, verbose_level)
+        print(optimizer)
+        print(result)
+
+        if result:
+            st.session_state.model_results[model_name] = {
+                'optimizer': optimizer,
+                'result': result,
+                'rmse': _extract_rmse(result),
+                'status': 'success'
+            }
+            print(f"{model_name} 완료 - RMSE: {st.session_state.model_results[model_name]['rmse']:.4f}")
+        else:
+            print(f"{model_name} 실패")
         
         completed_models += 1
         progress_bar.progress(completed_models / total_models)
@@ -321,6 +337,7 @@ def _extract_best_params(result):
             # CatBoost/Prophet의 경우
             if 'best_trial' in res and res['best_trial']:
                 return res['best_trial'].params
+            
             # XGBoost/LSTM의 경우
             elif 'best_model' in res and res['best_model']:
                 best_model = res['best_model']
@@ -328,6 +345,7 @@ def _extract_best_params(result):
                     return best_model['params']
                 elif 'hyperparameters' in best_model:
                     return best_model['hyperparameters']
+                
             # Optuna study가 있는 경우
             elif 'study' in res and res['study']:
                 return res['study'].best_params
@@ -337,16 +355,18 @@ def _extract_best_params(result):
 
     return {}
 
-def _extract_model_config(self, result):
+def _extract_model_config(result):
     """결과에서 모델 설정 추출"""
     try:
         if 'result' in result and result['result']:
             res = result['result']
+            
             # 공통 설정 정보
             config = {
-                'target_col': st.session_state.target_col,
+                'target': st.session_state.target,
                 'forecast_horizon': st.session_state.forecast_horizon
             }
+            
             # 모델별 추가 설정
             if 'best_model' in res and res['best_model']:
                 best_model = res['best_model']
@@ -360,7 +380,7 @@ def _extract_model_config(self, result):
         
     except Exception as e:
         print(f"모델 설정 추출 중 오류: {e}")
-    return {'target_col': st.session_state.target_col, 'forecast_horizon': st.session_state.forecast_horizon}
+    return {'target': st.session_state.target, 'forecast_horizon': st.session_state.forecast_horizon}
 
 def _calculate_advantage(best_rmse, all_models):
     """최고 성능 모델의 우위 계산"""
@@ -394,11 +414,13 @@ def _save_complete_results():
                          key=lambda x: successful_models[x]['rmse'])
     best_result = successful_models[best_model_name] # rmse가 가장 작은 모델 {name : result} 저장
     
+    print(best_result)
+
     # 최고 성능 모델의 설정만 저장
     best_config = {
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'optimization_summary': {
-            'target_col': st.session_state.target_col,
+            'target': st.session_state.target,
             'forecast_horizon': st.session_state.forecast_horizon,
             'data_shape': list(st.session_state.df.shape),
             'total_models_tested': len(st.session_state.model_results),

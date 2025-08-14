@@ -25,9 +25,9 @@ def load_data(file_path):
         
     if 'logTime' in df.columns and not pd.api.types.is_datetime64_any_dtype(df['logTime']):
         df['logTime'] = pd.to_datetime(df['logTime'])
-    st.session_state.df = df
 
     # 새 데이터가 업로드되면 관련 session state 초기화
+    st.session_state.df = df
     st.session_state.target = None  # 타겟 변수 초기화
     st.session_state.test_size = 0.2  # 테스트 사이즈 기본값으로 초기화
     

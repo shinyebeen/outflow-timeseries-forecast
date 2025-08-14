@@ -22,6 +22,11 @@ def initialize_session_state():
     if 'records_per_hour' not in st.session_state:
         st.session_state.records_per_hour = None
 
+    if 'time_step' not in st.session_state:
+        st.session_state.time_step = 168
+    if 'forecast_horizon' not in st.session_state:
+        st.session_state.forecast_horizon = 24
+
     # 시계열 데이터 변수 
     if 'series' not in st.session_state:
         st.session_state.series = None
