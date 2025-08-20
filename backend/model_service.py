@@ -211,8 +211,6 @@ def _run_all_models_equally(trials, selected_models, verbose_level):
         #     print(f"{model_name} 오류: {str(e)}")
 
         optimizer, result = _run_single_model(model_name, trials, verbose_level)
-        print(optimizer)
-        print(result)
 
         if result:
             st.session_state.model_results[model_name] = {

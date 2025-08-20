@@ -452,16 +452,16 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         # 그래프 생성
         fig = go.Figure()
         
-        # 훈련 데이터
-        fig.add_trace(
-            go.Scatter(
-                x=train.index,
-                y=train.values,
-                mode='lines',
-                name='Training Data',
-                line=dict(color='blue', width=2)
-            )
-        )
+        # # 훈련 데이터
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=train.index,
+        #         y=train.values,
+        #         mode='lines',
+        #         name='Training Data',
+        #         line=dict(color='blue', width=2)
+        #     )
+        # )
         
         # 테스트 데이터
         fig.add_trace(
@@ -522,11 +522,12 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         """
         # 데이터 준비
         models = list(metrics.keys())
-        metric_names = ['RMSE', 'MAE', 'R^2', 'MAPE']
+        # metric_names = ['RMSE', 'MAE', 'R^2', 'MAPE']
+        metric_names = ['RMSE', 'MAE']
         
-        # 모든 모델에 있는 지표만 선택
-        available_metrics = set.intersection(*[set(m.keys()) for m in metrics.values()])
-        metric_names = [m for m in metric_names if m in available_metrics]
+        # # 모든 모델에 있는 지표만 선택
+        # available_metrics = set.intersection(*[set(m.keys()) for m in metrics[models[0]]['result']['best_model'].values()])
+        # metric_names = [m for m in metric_names if m in available_metrics]
         
         # 서브플롯 생성
         fig = make_subplots(

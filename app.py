@@ -32,7 +32,7 @@ def main():
     pages = {
         'Home': [st.Page("pages/home.py", title="데이터 요약")],
         "Data Analysis": [st.Page("pages/data_analysis.py", title="Data Analysis")],
-        "Differencing" : [st.Page("pages/differencing.py", title="Differencing")],
+        # "Differencing" : [st.Page("pages/differencing.py", title="Differencing")],
         "Model Training": [st.Page("pages/model_training.py", title="Model Training")],
         "Prediction": [st.Page("pages/prediction.py", title="Prediction")],
     }

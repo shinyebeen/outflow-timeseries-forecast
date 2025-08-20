@@ -252,6 +252,7 @@ class XGBoostModel(TimeSeriesModel):
 
         # 최적 모델로 최종 학습
         best_model_result = self._train_best_model(best_trial)
+        
         return {
             'study': study,
             'best_trial': best_trial,
