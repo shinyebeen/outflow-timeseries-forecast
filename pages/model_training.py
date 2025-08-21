@@ -88,6 +88,8 @@ if model_factory is None:
 selected_models, strategy = render_model_selector(model_factory)
 
 # 모델 학습 버튼
+results = None
+
 col1, col2 = st.columns([3, 1])
 with col1:
     if st.button("모델 학습 및 예측 시작", use_container_width=True, type="primary"):
@@ -101,7 +103,7 @@ with col1:
                         st.session_state.selected_models = selected_models
                         st.session_state.strategy = strategy
                         # 모델 학습 실행
-                        run_complete_optimization(selected_models, strategy)
+                        final_recommendation, results = run_complete_optimization(selected_models, strategy)
                         st.success("모델 학습 완료!")
                 else:
                     st.error("차분 데이터 준비 중 오류가 발생했습니다.")
@@ -112,12 +114,12 @@ with col1:
                         st.session_state.strategy = strategy
                         
                         # 모델 학습 실행
-                        run_complete_optimization(selected_models, strategy)
+                        final_recommendation, results = run_complete_optimization(selected_models, strategy)
 
                         st.success("모델 학습 완료!")
                 else:
                     st.error("훈련/테스트 데이터 준비 중 오류가 발생했습니다.")
-        
+
         # # 차분 데이터 확인
         # if st.session_state.use_differencing:
         #     with st.expander("차분 데이터 확인", expanded=False):
@@ -132,3 +134,11 @@ with col2:
     if st.button("결과 초기화", use_container_width=True):
         reset_model_results()
         st.rerun()
+
+if results is not None:
+    st.download_button(
+                        label="Download JSON",
+                        file_name="model_result.json",
+                        mime="application/json",
+                        data=results,
+                    )

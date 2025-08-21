@@ -83,8 +83,7 @@ class LSTMModel(TimeSeriesModel):
             if len(st.session_state.train) < 50 or len(st.session_state.test) < 10:
                 print(f"데이터가 충분하지 않습니다. train: {len(st.session_state.train)}, test: {len(st.session_state.test)}")
                 return None
-
-            # 시퀀스 데이터 생성 - time_step 파라미터 전달
+            
             X_train, y_train = self._create_sequences(st.session_state.train, time_step)
             X_test, y_test = self._create_sequences(st.session_state.test, time_step)
 
@@ -152,6 +151,9 @@ class LSTMModel(TimeSeriesModel):
         """
         try:
             X_seq, y_seq = [], []
+                    # LSTM과 동일하게 step 설정 추가
+
+            time_step = st.session_state.time_step
             forecast_horizon = st.session_state.forecast_horizon  # 24시간씩 점프
             
             print(f"Creating sequences with time_step: {time_step}, forecast_horizon: {forecast_horizon}")
@@ -178,7 +180,7 @@ class LSTMModel(TimeSeriesModel):
                 print(f"데이터 길이가 충분하지 않습니다. 필요: {min_length}, 실제: {len(data)}")
                 return np.array([]).reshape(0, time_step, data.shape[1]), np.array([]).reshape(0, forecast_horizon, data.shape[1])
             
-            for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, forecast_horizon):
+            for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, time_step):
                 X_seq.append(data[i : i+time_step])  # (time_step, n_features)
                 y_seq.append(data[i+time_step : i+time_step+forecast_horizon])  # (forecast_horizon, n_features)
             

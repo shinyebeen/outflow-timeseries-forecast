@@ -8,6 +8,7 @@ from matplotlib import font_manager, rc
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import json
 
 from utils.singleton import Singleton
 
@@ -510,7 +511,9 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         return fig
     
-    def plot_metrics_comparison(self, metrics: dict[str, dict[str, float]]) -> go.Figure:
+    
+    # def plot_metrics_comparison(self, metrics: dict[str, dict[str, float]]) -> go.Figure:
+    def plot_metrics_comparison(self, metrics: str) -> go.Figure:
         """
         여러 모델의 성능 지표를 비교하여 시각화합니다 (Plotly 버전).
         
@@ -520,10 +523,12 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         Returns:
             Plotly Figure 객체
         """
+        metrics = json.loads(metrics)
+
         # 데이터 준비
         models = list(metrics.keys())
         # metric_names = ['RMSE', 'MAE', 'R^2', 'MAPE']
-        metric_names = ['RMSE', 'MAE']
+        metric_names = ['rmse', 'mae']
         
         # # 모든 모델에 있는 지표만 선택
         # available_metrics = set.intersection(*[set(m.keys()) for m in metrics[models[0]]['result']['best_model'].values()])

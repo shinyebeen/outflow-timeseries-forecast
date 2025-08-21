@@ -2,6 +2,7 @@
 시계열 데이터 시각화 모듈
 """
 
+import json
 import streamlit as st
 from utils.visualizer import (cached_plot_timeseries, 
                               cached_boxplot, 
@@ -167,9 +168,9 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
             results = forecast['result']['best_model']
             print(results)
             if len(test_data) != len(results['test_predictions']):
-                min_len = min(len(results['test_predictions']), len(test_data))
+                min_len = min(len(results['test_predictions']), len(results['test_actual']))
                 if min_len > 0:
-                    st.warning(f"{model_name} 모델의 예측 길이({len(results['test_predictions'])})가 테스트 데이터 길이({len(test_data)})와 다릅니다. 최소 길이({min_len})로 조정합니다.")
+                    st.warning(f"{model_name} 모델의 예측 길이({len(results['test_predictions'])})가 테스트 데이터 길이({len(results['test_actual'])})와 다릅니다. 최소 길이({min_len})로 조정합니다.")
                     valid_forecasts[model_name] = results['test_predictions'][:min_len]
                 else:
                     st.warning(f"{model_name} 모델의 예측 결과를 시각화에서 제외합니다.")
@@ -191,12 +192,6 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
     except Exception as e:
         st.error(f"예측 비교 시각화 중 오류 발생: {str(e)}")
         return None
-
-import pickle
-import hashlib
-def make_cache_key(obj):
-    """객체를 해시 문자열로 변환"""
-    return hashlib.md5(pickle.dumps(obj)).hexdigest()
  
 def visualize_metrics_comparison(metrics=None):
     """
@@ -209,18 +204,27 @@ def visualize_metrics_comparison(metrics=None):
         plotly.graph_objects.Figure: 메트릭 비교 그래프
     """
     metrics = metrics if metrics is not None else st.session_state.model_results
+    metrics_ = {}
+
+    for model_name, results in metrics.items():
+        if 'result' in results and 'best_model' in results['result']:
+            metrics_[model_name] = {}
+            metrics_[model_name]['rmse'] = results['result']['best_model']['rmse']
+            metrics_[model_name]['mae'] = results['result']['best_model']['mae']
+            
+        else:
+            st.warning(f"{model_name} 모델의 메트릭 정보가 없습니다. 시각화에서 제외합니다.")
+            del metrics[model_name]
     
-    if metrics:
-        metrics_fig = cached_plot_metrics_comparison(metrics)
+    metrics_json = json.dumps(metrics_, sort_keys=True)
+    
+    if metrics_json:
+        metrics_fig = cached_plot_metrics_comparison(metrics_json)
         return metrics_fig
     return None
-    # if metrics:
-    #     metrics_key = make_cache_key(metrics)  # 해시 키는 string (hashable)
-    #     metrics_fig = cached_plot_metrics_comparison(metrics_key, _metrics=metrics)
-    
-    # return metrics_fig
 
 def visualize_residuals(model_name=None):
+
     """
     잔차 분석 시각화
     

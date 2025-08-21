@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import json
 from backend.visualization_service import visualize_forecast_comparison, visualize_metrics_comparison
 
 # 모델 학습 결과 표시
@@ -38,6 +39,7 @@ if hasattr(st.session_state, 'model_results') and st.session_state.model_results
     
     metrics_df = pd.DataFrame(metrics_data)
     st.dataframe(metrics_df.T, use_container_width=True)  # 전치하여 모델별로 행 표시
+
     
     # # 최적 모델 선택
     # if st.session_state.best_model:

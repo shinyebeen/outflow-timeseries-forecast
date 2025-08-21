@@ -57,6 +57,10 @@ class XGBoostModel(TimeSeriesModel):
         """
         Multi-output 시계열 시퀀스 데이터 생성 (step 추가)
         """
+        data_np = data.values if hasattr(data, "values") else np.array(data)
+        if data_np.ndim == 1:
+            data_np = data_np.reshape(-1, 1)
+
         X_seq = []
         y_seq = []
         
@@ -66,10 +70,10 @@ class XGBoostModel(TimeSeriesModel):
         forecast_horizon = st.session_state.forecast_horizon  # 24시간씩 점프
         
         # 현재 시점의 특성들을 입력으로 사용
-        for i in range(0, data.shape[0] - time_step - forecast_horizon, time_step):  # step 추가!
+        for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, time_step):  # step 추가!
 
-            X_seq.append([data.iloc[i:i+time_step]])
-            y_seq.append([data.iloc[i+time_step:i+time_step+forecast_horizon]])
+            X_seq.append(data.iloc[i:i+time_step])
+            y_seq.append(data.iloc[i+time_step:i+time_step+forecast_horizon])
 
         return np.array(X_seq), np.array(y_seq)
     
