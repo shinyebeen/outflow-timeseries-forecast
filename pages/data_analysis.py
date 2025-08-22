@@ -17,12 +17,11 @@ from backend.visualization_service import (visualize_boxplot,
 
 st.title("Data Analysis Page")
 
-tab1, tab2, tab3, tab4 = st.tabs(['1', '2', '3', '4'])
+tab1, tab2, tab3, tab4 = st.tabs(['이상치 처리', '정상성 판단', '시계열 분해', '주파수 분석'])
 
 if st.session_state.series is not None:
     # 이상치 제거 # 박스플롯
     with tab1:
-        st.subheader("박스플롯")
         outlier_col1, outlier_col2 = st.columns(2)
         
         with outlier_col1:
@@ -68,18 +67,18 @@ if st.session_state.series is not None:
                     if st.button('이상치 제거'):
                         try:
                             # selected_criterion을 함수에 전달
-                            cleaned_series = delete_outliers(selected_criterion)
+                            cleaned_df = delete_outliers(selected_criterion)
                             
-                            if cleaned_series is not None and len(cleaned_series) > 0:
+                            if cleaned_df is not None and len(cleaned_df) > 0:
                                 st.success(f'이상치 제거 성공!')
 
                                 if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
                                     reset_data_results()
                                     reset_model_results()
-                                    st.session_state.series = cleaned_series
+                                    st.session_state.df = cleaned_df
                                     st.rerun()
 
-                            elif len(cleaned_series) == 0:
+                            elif len(cleaned_df) == 0:
                                 st.info('제거할 이상치가 없습니다.')
                             else:
                                 st.error('이상치 제거에 실패했습니다.')
@@ -227,17 +226,32 @@ if st.session_state.series is not None:
                 st.error("ACF/PACF 그래프 생성에 실패했습니다.")
 
     with tab3:
-        # 계절성 분해
+        # 시계열 분해
         # 주기 자동 감지 또는 기본값 사용
-        period = min(24*st.session_state.records_per_hour, len(st.session_state.series) // 2)  # 시간별 데이터라 가정하고 24시간 주기
+        period = min(24*st.session_state.records_per_hour, len(st.session_state.series)//2)  # 시간별 데이터라 가정하고 24시간 주기
         decomposition = analyze_decomposition(period)
 
         try:
             if decomposition is None:
-                st.error("게절성 분해 도중 오류가 발생했습니다.")
+                st.error("시계열 분해 도중 오류가 발생했습니다.")
             
             else:
-                st.success("계절성 분해 완료!")
+                st.success("시계열 분해 완료!")                
+                
+                # 설명 추가
+                with st.expander("시계열 분해 그래프 해석 방법", expanded=False):
+                    st.markdown("""
+                    시계열 분해는 시계열 데이터를 **트렌드(Trend)**, **계절성(Seasonal)**, **잔차(Residual)** 로 분해하여 각 구성 요소를 분석하는 방법입니다.
+                    - **Observed** : 원본 시계열 데이터입니다.
+                    - **Trend** : 데이터의 **장기적인 추세**입니다. 일반적으로 상승 또는 하강하는 경향을 보여줍니다.
+                    - **Seasonal** : 계절성은 **주기적인 패턴**을 나타내며, 예를 들어 일별, 주별, 월별 등 반복되는 경향을 보여줍니다.
+                    - **Residual** : 잔차는 트렌드와 계절성을 제거한 후 남은 데이터로, **예측할 수 없는 변동성**을 나타냅니다. 
+                                
+                        이 값이 작을수록 모델의 예측력이 높다고 볼 수 있습니다.
+                                
+                    데이터가 너무 많은 경우, 그래프가 직사각형 모양 또는 밀집된 형태로 표시될 수 있습니다. 이 경우, 그래프를 확대하거나 축소하여 확인할 수 있습니다.
+                    """)
+                
                 if st.session_state.decomposition:
                     decomposition_fig = visualize_decomposition()
                 

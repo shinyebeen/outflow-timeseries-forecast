@@ -128,6 +128,8 @@ def reset_data_results():
     데이터 결과를 초기화합니다.
     모델 결과도 함께 초기화합니다.(reset_model_results 호출)
     """
+    st.session_state.target = None  # 타겟 변수 초기화
+    st.session_state.test_size = 0.2  # 테스트 사이즈 기본값으로 초기화
     st.session_state.series = None
     st.session_state.cleaned_series = None
     st.session_state.train = None

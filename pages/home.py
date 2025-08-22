@@ -13,14 +13,17 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     render_data_summary(st.session_state.df)
 
     # 기본통계량
-    stats_df = st.session_state.series.describe().to_frame().T
-    st.dataframe(stats_df, use_container_width=True)
+    # stats_df = st.session_state.series.describe().to_frame().T
+    # st.dataframe(stats_df, use_container_width=True)
 
     fig = visualize_timeseries(st.session_state.series, st.session_state.target)
     if fig:
         st.plotly_chart(fig, use_container_width=True, theme="streamlit")
     else:
         st.error("시계열 그래프 생성 실패")
+
+    st.markdown("**데이터 확인하기**")    
+    st.dataframe(st.session_state.df, use_container_width=True, hide_index=True)
 
 
 else:

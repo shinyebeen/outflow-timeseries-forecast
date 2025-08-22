@@ -21,11 +21,11 @@ def initialize_sidebar():
     show_memory_usage()
 
 def render_data_load_section():
-    st.sidebar.header("배수지 유출유량 예측")
+    st.sidebar.header("시계열 예측")
 
     file = st.sidebar.file_uploader("upload file", 
                             type=["csv", "xlsx"],
-                            help="배수지 유출유량 데이터를 포함한 CSV 또는 엑셀 파일을 업로드하세요.")
+                            help="시계열 데이터를 포함한 CSV 또는 엑셀 파일을 업로드하세요.")
     
     if file is not None:
         try:
@@ -33,7 +33,7 @@ def render_data_load_section():
         
         except ValueError as e:
             st.session_state.df = None
-            st.sidebar.error("날짜 형식 열의 이름을 'logTime'으로 변경하거나, 첫 번째 순서로 오도록 수정한 후 데이터를 업로드해주세요.")
+            st.sidebar.error("날짜 형식 열을 포함한 데이터를 업로드해주세요.")
         
     else:
         st.sidebar.warning("파일을 선택해주세요.")

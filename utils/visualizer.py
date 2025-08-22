@@ -289,10 +289,6 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         fig.update_yaxes(title_text='Power (log)', row=1, col=2)
 
         return fig
-    
-
-
-
 
     def plot_decomposition(self, 
                            decomposition,
@@ -434,13 +430,9 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         return fig
     
-    # def plot_forecast_comparison(self,
-    #                         train: pd.Series,
-    #                         test: pd.Series,
-    #                         forecasts: dict[str, np.ndarray],
-    #                         **kwargs) -> go.Figure:
     def plot_forecast_comparison(self,
-                            test: dict[str, np.ndarray],
+                            train: pd.Series,
+                            test: pd.Series,
                             forecasts: dict[str, np.ndarray],
                             **kwargs) -> go.Figure:
         """
@@ -457,22 +449,22 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         # 그래프 생성
         fig = go.Figure()
         
-        # # 훈련 데이터
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=train.index,
-        #         y=train.values,
-        #         mode='lines',
-        #         name='Training Data',
-        #         line=dict(color='blue', width=2)
-        #     )
-        # )
+        # 훈련 데이터
+        fig.add_trace(
+            go.Scatter(
+                x=train.index,
+                y=train.values,
+                mode='lines',
+                name='Training Data',
+                line=dict(color='blue', width=2)
+            )
+        )
         
         # 테스트 데이터
         fig.add_trace(
             go.Scatter(
-                x=test.index[-168:],
-                y=test.values[-168:],
+                x=test.index,
+                y=test.values,
                 mode='lines',
                 name='Actual Test Data',
                 line=dict(color='green', width=2)
@@ -486,8 +478,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         for i, (model_name, forecast) in enumerate(forecasts.items()):
             fig.add_trace(
                 go.Scatter(
-                    x=test.index[-data_len:],
-                    y=forecast[-data_len:],
+                    x=test.index,
+                    y=forecast,
                     mode='lines',
                     name=f'{model_name} Forecast',
                     line=dict(color=colors[i % len(colors)], width=2, dash='dash')
@@ -847,7 +839,7 @@ def cached_plot_differencing_comparison(original_series, differenced_series, tit
 
 @st.cache_data(ttl=3600)
 # def cached_plot_forecast_comparison(train, test, forecasts):
-def cached_plot_forecast_comparison(test, forecasts):
+def cached_plot_forecast_comparison(train, test, forecasts):
     """예측 비교 그래프 캐싱"""
     try:
         test = pd.Series(test)
@@ -861,7 +853,7 @@ def cached_plot_forecast_comparison(test, forecasts):
                 
         viz = TimeSeriesVisualizer()
         # return viz.plot_forecast_comparison(train, test, forecasts)
-        return viz.plot_forecast_comparison(test, forecasts)
+        return viz.plot_forecast_comparison(train, test, forecasts)
     except Exception as e:
         st.error(f"예측 비교 그래프 생성 중 오류: {str(e)}")
         import traceback

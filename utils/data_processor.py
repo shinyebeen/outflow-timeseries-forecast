@@ -86,6 +86,18 @@ class DataProcessor(metaclass = Singleton):
             'total_standard' : total_standard,
             'total_conservative' : total_conservative
         }
+
+
+    ## 08.22. 이상치 처리 후 적용하는 코드 추가하기
+    # def delete_outliers(self, df, mode):
+    #     temp = df.copy()
+    #     temp.set_index("logTime", inplace=True)
+
+    #     temp[(temp[st.session_state.target] < st.session_state.outliers['lower_'+mode])|(temp[st.session_state.target] > st.session_state.outliers['upper_'+mode])] = np.nan
+    #     temp[st.session_state.target] = temp[st.session_state.target].interpolate(method="time").fillna('ffill').fillna('bfill')
+
+    #     df[st.session_state.target] = temp[st.session_state.target]
+    #     return df 
     
     def delete_outliers(self, series, mode):
         temp = series.copy()
