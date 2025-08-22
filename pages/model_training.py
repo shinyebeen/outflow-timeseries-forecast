@@ -85,7 +85,7 @@ if model_factory is None:
     st.stop()
 
 # 모델 선택기 렌더링
-selected_models, strategy = render_model_selector(model_factory)
+selected_models, strategy, trial = render_model_selector(model_factory)
 
 # 모델 학습 버튼
 results = None
@@ -102,8 +102,9 @@ with col1:
                     with st.spinner("모델을 차분 데이터로 학습 중입니다..."):
                         st.session_state.selected_models = selected_models
                         st.session_state.strategy = strategy
+
                         # 모델 학습 실행
-                        final_recommendation, results = run_complete_optimization(selected_models, strategy)
+                        final_recommendation, results = run_complete_optimization(selected_models, strategy, trial)
                         st.success("모델 학습 완료!")
                 else:
                     st.error("차분 데이터 준비 중 오류가 발생했습니다.")
@@ -112,10 +113,9 @@ with col1:
                     with st.spinner("모델을 학습 중입니다..."):
                         st.session_state.selected_models = selected_models
                         st.session_state.strategy = strategy
-                        
-                        # 모델 학습 실행
-                        final_recommendation, results = run_complete_optimization(selected_models, strategy)
 
+                        # 모델 학습 실행
+                        final_recommendation, results = run_complete_optimization(selected_models, strategy, trial)
                         st.success("모델 학습 완료!")
                 else:
                     st.error("훈련/테스트 데이터 준비 중 오류가 발생했습니다.")

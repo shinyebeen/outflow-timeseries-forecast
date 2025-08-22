@@ -4,7 +4,7 @@ import json
 from backend.visualization_service import visualize_forecast_comparison, visualize_metrics_comparison
 
 # 모델 학습 결과 표시
-if hasattr(st.session_state, 'model_results') and st.session_state.model_results:
+if hasattr(st.session_state, 'model_results') and st.session_state.model_results is not None:
     st.markdown("---")
     st.subheader("📊 모델 예측 결과")
     

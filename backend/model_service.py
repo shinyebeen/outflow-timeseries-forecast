@@ -51,7 +51,7 @@ def run_complete_optimization(selected_models, strategy='smart', trials_per_mode
                     st.error(f"원본 데이터 분할 중 오류: {e}")
                     
 
-        if 'model_results' not in st.session_state:
+        if st.session_state.model_results is None:
             st.session_state.model_results = {}
         
         if strategy == 'quick':

@@ -66,6 +66,8 @@ def initialize_session_state():
         st.session_state.fft_result = {}
 
     # 모델 관련 변수
+    if 'model_results' not in st.session_state:
+        st.session_state.model_results = None
     if 'forecasts' not in st.session_state:
         st.session_state.forecasts = None
     if 'metrics' not in st.session_state:
@@ -118,6 +120,7 @@ def reset_model_results():
     st.session_state.metrics = {}
     st.session_state.best_model = None
     st.session_state.use_differencing = False
+    st.session_state.model_results = None
 
 
 def reset_data_results():

@@ -180,7 +180,7 @@ class LSTMModel(TimeSeriesModel):
                 print(f"데이터 길이가 충분하지 않습니다. 필요: {min_length}, 실제: {len(data)}")
                 return np.array([]).reshape(0, time_step, data.shape[1]), np.array([]).reshape(0, forecast_horizon, data.shape[1])
             
-            for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, time_step):
+            for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, forecast_horizon):
                 X_seq.append(data[i : i+time_step])  # (time_step, n_features)
                 y_seq.append(data[i+time_step : i+time_step+forecast_horizon])  # (forecast_horizon, n_features)
             

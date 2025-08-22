@@ -434,9 +434,13 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         return fig
     
+    # def plot_forecast_comparison(self,
+    #                         train: pd.Series,
+    #                         test: pd.Series,
+    #                         forecasts: dict[str, np.ndarray],
+    #                         **kwargs) -> go.Figure:
     def plot_forecast_comparison(self,
-                            train: pd.Series,
-                            test: pd.Series,
+                            test: dict[str, np.ndarray],
                             forecasts: dict[str, np.ndarray],
                             **kwargs) -> go.Figure:
         """
@@ -467,8 +471,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         # 테스트 데이터
         fig.add_trace(
             go.Scatter(
-                x=test.index,
-                y=test.values,
+                x=test.index[-168:],
+                y=test.values[-168:],
                 mode='lines',
                 name='Actual Test Data',
                 line=dict(color='green', width=2)
@@ -477,11 +481,13 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         # 각 모델의 예측
         colors = ['red', 'purple', 'orange', 'brown', 'pink', 'gray', 'olive']
+        data_len = 168 if len(test) > 168 else len(test)
+
         for i, (model_name, forecast) in enumerate(forecasts.items()):
             fig.add_trace(
                 go.Scatter(
-                    x=test.index,
-                    y=forecast,
+                    x=test.index[-data_len:],
+                    y=forecast[-data_len:],
                     mode='lines',
                     name=f'{model_name} Forecast',
                     line=dict(color=colors[i % len(colors)], width=2, dash='dash')
@@ -552,8 +558,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
                 sorted_idx = np.argsort(values)[::-1]
             else:
                 # 값을 정규화하여 색상 결정 (낮을수록 좋음)
-                max_val = max(values) if values else 1
-                colors = ['lightcoral' if v/max_val > 0.7 else 'lightgreen' for v in values]
+                min_val = min(values)
+                colors = ['lightgreen' if v == min_val else 'lightcoral' for v in values]
                 # 오름차순 정렬 (낮을수록 좋음)
                 sorted_idx = np.argsort(values)
             
@@ -577,7 +583,7 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         # 레이아웃 업데이트
         fig.update_layout(
-            height=300 * len(metric_names),
+            height=400 * len(metric_names),
             showlegend=False,
             margin=dict(l=10, r=10, t=50, b=10)
         )
@@ -840,9 +846,12 @@ def cached_plot_differencing_comparison(original_series, differenced_series, tit
     return viz.plot_differencing_comparison(original_series, differenced_series, title=title)
 
 @st.cache_data(ttl=3600)
-def cached_plot_forecast_comparison(train, test, forecasts):
+# def cached_plot_forecast_comparison(train, test, forecasts):
+def cached_plot_forecast_comparison(test, forecasts):
     """예측 비교 그래프 캐싱"""
     try:
+        test = pd.Series(test)
+        
         # numpy 배열을 Series로 변환 (인덱스 보장)
         for model_name, forecast in forecasts.items():
             if isinstance(forecast, np.ndarray):
@@ -851,7 +860,8 @@ def cached_plot_forecast_comparison(train, test, forecasts):
                 forecasts[model_name] = pd.Series(forecast[:min_len], index=test.index[:min_len])
                 
         viz = TimeSeriesVisualizer()
-        return viz.plot_forecast_comparison(train, test, forecasts)
+        # return viz.plot_forecast_comparison(train, test, forecasts)
+        return viz.plot_forecast_comparison(test, forecasts)
     except Exception as e:
         st.error(f"예측 비교 그래프 생성 중 오류: {str(e)}")
         import traceback

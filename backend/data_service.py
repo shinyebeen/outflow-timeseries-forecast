@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+from frontend.session_state import reset_data_results
 from utils.data_processor import (cached_preprocess_data,
                                  cached_analyze_outliers,
                                  cached_delete_outliers,
@@ -26,10 +27,14 @@ def load_data(file_path):
     if 'logTime' in df.columns and not pd.api.types.is_datetime64_any_dtype(df['logTime']):
         df['logTime'] = pd.to_datetime(df['logTime'])
 
+    reset_data_results()
+    
     # 새 데이터가 업로드되면 관련 session state 초기화
     st.session_state.df = df
     st.session_state.target = None  # 타겟 변수 초기화
     st.session_state.test_size = 0.2  # 테스트 사이즈 기본값으로 초기화
+
+    
     
     # # 날짜 범위 선택
             # default_end_date = pd.Timestamp(df['logTime'].max())

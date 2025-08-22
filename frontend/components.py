@@ -160,5 +160,19 @@ def render_model_selector(model_factory):
             "베이지안 최적화 반복 횟수",
             ["quick", "balanced", "thorough", "smart", 'custom']
         )
+        
+        col1, _ = st.columns([1, 9])
 
-        return selected_models, strategy 
+        trial = None
+        with col1:
+            if strategy == 'custom':
+                trial = st.number_input(
+                    "최적화 반복 횟수",
+                    min_value=1,
+                    max_value=100,
+                    value=1,
+                    key="optimization_trials",
+                    help="최적화 반복 횟수를 설정합니다. 이 값이 클수록 더 많은 시간이 소요됩니다."
+                )
+
+        return selected_models, strategy, trial
