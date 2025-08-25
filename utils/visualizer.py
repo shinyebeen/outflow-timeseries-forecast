@@ -450,22 +450,23 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         # 그래프 생성
         fig = go.Figure()
         
-        # 훈련 데이터
-        fig.add_trace(
-            go.Scatter(
-                x=train.index,
-                y=train.values,
-                mode='lines',
-                name='Training Data',
-                line=dict(color='blue', width=2)
-            )
-        )
+        # # 훈련 데이터
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=train.index,
+        #         y=train.values,
+        #         mode='lines',
+        #         name='Training Data',
+        #         line=dict(color='blue', width=2)
+        #     )
+        # )
+        data_len = 168 if len(test) > 168 else len(test)
         
         # 테스트 데이터
         fig.add_trace(
             go.Scatter(
-                x=test.index,
-                y=test.values,
+                x=test.index[-data_len:],
+                y=test.values[-data_len:],
                 mode='lines',
                 name='Actual Test Data',
                 line=dict(color='green', width=2)
@@ -474,13 +475,12 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         # 각 모델의 예측
         colors = ['red', 'purple', 'orange', 'brown', 'pink', 'gray', 'olive']
-        data_len = 168 if len(test) > 168 else len(test)
 
         for i, (model_name, forecast) in enumerate(forecasts.items()):
             fig.add_trace(
                 go.Scatter(
-                    x=test.index,
-                    y=forecast,
+                    x=test.index[-data_len:],
+                    y=forecast[-data_len:],
                     mode='lines',
                     name=f'{model_name} Forecast',
                     line=dict(color=colors[i % len(colors)], width=2, dash='dash')
@@ -853,7 +853,6 @@ def cached_plot_forecast_comparison(train, test, forecasts):
                 forecasts[model_name] = pd.Series(forecast[:min_len], index=test.index[:min_len])
                 
         viz = TimeSeriesVisualizer()
-        # return viz.plot_forecast_comparison(train, test, forecasts)
         return viz.plot_forecast_comparison(train, test, forecasts)
     except Exception as e:
         st.error(f"예측 비교 그래프 생성 중 오류: {str(e)}")
