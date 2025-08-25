@@ -27,7 +27,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         plt.rcParams['figure.figsize'] = (20, 6)
 
         # 한글 폰트 설정
-        font_path = 'C:/outflow/styles/NanumGothic.ttf'
+        # font_path = 'C:/outflow/styles/NanumGothic.ttf'
+        font_path = 'styles/NanumGothic.ttf'
         font_name = font_manager.FontProperties(fname=font_path).get_name()
         rc('font', family=font_name)
         plt.rcParams['axes.unicode_minus'] = False
