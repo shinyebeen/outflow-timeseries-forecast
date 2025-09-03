@@ -82,6 +82,8 @@ def initialize_session_state():
         st.session_state.best_model = None
     if 'strategy' not in st.session_state:
         st.session_state.strategy = 'smart'
+    if 'file_data' not in st.session_state:
+        st.session_state.file_data = None
 
     # 사용자 선택 변경 추적 변수 
     if 'active_page' not in st.session_state:
@@ -145,4 +147,5 @@ def reset_data_results():
     st.session_state.differencing_recommendation = None
     st.session_state.diff_train = None
     st.session_state.diff_test = None
+    st.session_state.file_data = None
     reset_model_results()

@@ -37,12 +37,11 @@ def show_memory_usage():
     
     # 사이드바 하단에 메모리 사용량 표시
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📊 시스템 상태")
     st.sidebar.progress(min(memory_usage / 4000, 1.0))  # 4GB 기준
     st.sidebar.text(f"메모리 사용량: {memory_usage:.1f} MB")
     
     # 메모리 비우기 버튼 추가
-    if st.sidebar.button("🧹 메모리 비우기", help="캐시를 비우고 메모리를 정리합니다"):
+    if st.sidebar.button("메모리 비우기", help="캐시를 비우고 메모리를 정리합니다"):
         with st.spinner("메모리 정리 중..."):
             success = clear_memory()
             if success:
@@ -54,7 +53,7 @@ def show_memory_usage():
         st.sidebar.warning("⚠️ 메모리 사용량이 높습니다. 불필요한 모델을 제거하거나 샘플 데이터를 사용하세요.")
 
     # 메모리 관리 옵션 펼치기
-    with st.sidebar.expander("🧹 메모리 관리"):
+    with st.sidebar.expander("메모리 관리"):
         # 캐시만 비우기
         if st.button("캐시 비우기", help="계산 결과 캐시만 비웁니다. 데이터는 유지됩니다."):
             st.cache_data.clear()
@@ -111,16 +110,19 @@ def render_data_summary(df):
                        border=True)
   
 def render_data_outliers(mode = 'standard'):
-
-    st.subheader(mode + " 기준 이상치")
+    if mode == 'standard':
+        mode_name = '표준'
+    else:
+        mode_name = '보수적'
+    st.subheader(mode_name + " 기준 이상치")
     metric_col1, metric_col2, metric_col3 = st.columns(3)
     with metric_col1:
-        st.metric(label=mode + " 기준 이상치 하한 개수", 
+        st.metric(label = mode_name + " 기준 이상치 하한 개수", 
                 value=f"{st.session_state.outliers['lower_'+mode]:,.2f}",
                 border=True
                 )
     with metric_col2:
-        st.metric(label=mode+" 기준 이상치 상한 개수", 
+        st.metric(label = mode_name+" 기준 이상치 상한 개수", 
                 value=f"{st.session_state.outliers['upper_'+mode]:,.2f}",
                 border=True
                 )
@@ -128,11 +130,11 @@ def render_data_outliers(mode = 'standard'):
     standard_ratio = st.session_state.outliers['total_'+mode] / len(st.session_state.series) * 100
     
     with metric_col3:
-        st.metric(label=mode+" 기준 이상치 비율(%)", 
+        st.metric(label=mode_name+" 기준 이상치 비율(%)", 
                 value=f"{standard_ratio:,.2f} %",
                 border=True
                 )
-    with st.expander(mode+" 기준 이상치 데이터 보기"):
+    with st.expander(mode_name+" 기준 이상치 데이터 보기"):
         st.dataframe(st.session_state.series[(st.session_state.series < st.session_state.outliers['lower_'+mode]) | (st.session_state.series > st.session_state.outliers['upper_'+mode])])
 
 def render_model_selector(model_factory):

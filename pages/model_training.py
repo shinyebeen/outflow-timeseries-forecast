@@ -119,6 +119,9 @@ with col1:
                         st.success("모델 학습 완료!")
                 else:
                     st.error("훈련/테스트 데이터 준비 중 오류가 발생했습니다.")
+            
+            if results is not None:
+                st.session_state.file_data = results 
 
         # # 차분 데이터 확인
         # if st.session_state.use_differencing:
@@ -135,10 +138,10 @@ with col2:
         reset_model_results()
         st.rerun()
 
-if results is not None:
+if st.session_state.file_data is not None:
     st.download_button(
                         label="Download JSON",
                         file_name="model_result.json",
                         mime="application/json",
-                        data=results,
-                    )
+                        data=st.session_state.file_data,
+                        help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)

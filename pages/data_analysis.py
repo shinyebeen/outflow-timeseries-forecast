@@ -67,18 +67,24 @@ if st.session_state.series is not None:
                     if st.button('이상치 제거'):
                         try:
                             # selected_criterion을 함수에 전달
-                            cleaned_df = delete_outliers(selected_criterion)
+                            cleaned_series = delete_outliers(selected_criterion)
                             
-                            if cleaned_df is not None and len(cleaned_df) > 0:
+                            if cleaned_series is not None and len(cleaned_series) > 0:
                                 st.success(f'이상치 제거 성공!')
 
+                                # if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
+                                #     reset_data_results()
+                                #     reset_model_results()
+                                #     st.session_state.df = cleaned_df
+                                #     st.rerun()
                                 if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
                                     reset_data_results()
                                     reset_model_results()
-                                    st.session_state.df = cleaned_df
-                                    st.rerun()
+                                    st.session_state.series = cleaned_series  # 시계열 데이터 직접 업데이트
+                                    st.session_state.df[st.session_state.target] = cleaned_series  # target_column은 실제 컬럼명으로 변경 필요
+                                    st.experimental_rerun()  # 페이지 강제 새로고침
 
-                            elif len(cleaned_df) == 0:
+                            elif len(cleaned_series) == 0:
                                 st.info('제거할 이상치가 없습니다.')
                             else:
                                 st.error('이상치 제거에 실패했습니다.')
@@ -106,9 +112,9 @@ if st.session_state.series is not None:
             with st.container():
                 # 정상성 여부 먼저 큰 글씨로 표시
                 if st.session_state.stationarity_result['is_stationary']:
-                    st.success("### ✅ 시계열 데이터가 정상성을 만족합니다")
+                    st.success("### 정상성 만족")
                 else:
-                    st.warning("### ⚠️ 시계열 데이터가 정상성을 만족하지 않습니다")
+                    st.warning("### 시계열 데이터가 정상성을 만족하지 않습니다")
                     
                 # 설명 추가
                 with st.expander("정상성 판단 기준 설명", expanded=False):
@@ -131,7 +137,7 @@ if st.session_state.series is not None:
                 metric_col1.metric(
                     label="ADF 통계량",
                     value=f"{test_stat:.4f}",
-                    delta=f"{delta_adf:.4f}",
+                    # delta=f"{delta_adf:.4f}",
                     delta_color="inverse",
                     help="ADF 통계량이 임계값보다 작을수록 정상성 가능성이 높습니다",
                     border=True
@@ -146,7 +152,7 @@ if st.session_state.series is not None:
                 metric_col2.metric(
                     label="p-값",
                     value=f"{p_value:.4f}",
-                    delta=f"{delta_p:.4f}",
+                    # delta=f"{delta_p:.4f}",
                     delta_color="inverse",
                     help="p-값이 0.05보다 작으면 정상성을 만족합니다",
                     border=True
