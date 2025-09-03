@@ -24,7 +24,7 @@ def main():
 
     st.set_page_config(
         page_title=app_config.APP_NAME,
-        page_icon=":bar_chart:",
+        page_icon="💧",
         layout="wide",
         initial_sidebar_state="expanded"
     )
