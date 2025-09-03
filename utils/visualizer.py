@@ -97,7 +97,7 @@ class TimeSeriesVisualizer(metaclass=Singleton):
     def plot_acf_pacf(self,
                     acf_values: np.ndarray,
                     pacf_values: np.ndarray,
-                    lags: int = 40,
+                    lags: int = 10,
                     **kwargs) -> go.Figure:
         """
         ACF 및 PACF 플롯을 생성합니다 (Plotly 버전).
@@ -465,8 +465,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         # 테스트 데이터
         fig.add_trace(
             go.Scatter(
-                x=test.index[-data_len:],
-                y=test.values[-data_len:],
+                x=test.index[-data_len*10:],
+                y=test.values[-data_len*10:],
                 mode='lines',
                 name='Actual Test Data',
                 line=dict(color='green', width=2)
@@ -479,8 +479,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         for i, (model_name, forecast) in enumerate(forecasts.items()):
             fig.add_trace(
                 go.Scatter(
-                    x=test.index[-data_len:],
-                    y=forecast[-data_len:],
+                    x=test.index[-data_len*10:],
+                    y=forecast[-data_len*10:],
                     mode='lines',
                     name=f'{model_name} Forecast',
                     line=dict(color=colors[i % len(colors)], width=2, dash='dash')
