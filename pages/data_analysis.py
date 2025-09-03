@@ -216,7 +216,7 @@ if st.session_state.series is not None:
         st.subheader("ACF/PACF Plot")
         
         # ACF/PACF 분석 버튼
-        nlags = st.slider("최대 시차(lag) 수", min_value=10, max_value=100, value=40, step=5)
+        nlags = st.slider("최대 시차(lag) 수", min_value=10, max_value=100, value=10, step=5)
         
         if st.button("ACF/PACF 분석 실행", type="primary"):
             acf_value, pacf_value = analyze_acf_pacf(nlags)
