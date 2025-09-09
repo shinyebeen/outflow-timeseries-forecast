@@ -70,7 +70,7 @@ class XGBoostModel(TimeSeriesModel):
         forecast_horizon = st.session_state.forecast_horizon  # 24시간씩 점프
         
         # 현재 시점의 특성들을 입력으로 사용
-        for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, forecast_horizon):  # step 추가!
+        for i in range(0, data.shape[0] - time_step - forecast_horizon, forecast_horizon):  # step 추가!
 
             X_seq.append(data.iloc[i:i+time_step])
             y_seq.append(data.iloc[i+time_step:i+time_step+forecast_horizon])
@@ -220,8 +220,10 @@ class XGBoostModel(TimeSeriesModel):
         # Optuna study 생성
         study = optuna.create_study(
             direction='minimize',
-            sampler=optuna.samplers.TPESampler(seed=42),
-            pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=3)
+            # sampler=optuna.samplers.TPESampler(seed=42),
+            # pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=3)
+            sampler=optuna.samplers.TPESampler(seed=42, n_startup_trials=3),
+            pruner=optuna.pruners.MedianPruner(n_startup_trials=3, n_warmup_steps=2)
         )
 
         # 최적화 실행

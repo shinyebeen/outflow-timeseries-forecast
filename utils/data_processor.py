@@ -298,9 +298,8 @@ class DataProcessor(metaclass = Singleton):
         return train, test
     
             
-    
-
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800, max_entries=3)  # 30분 TTL, 최대 3개 캐시
 def cached_preprocess_data(df, target_col):
     """
     시계열 그래프 캐싱
@@ -308,7 +307,8 @@ def cached_preprocess_data(df, target_col):
     processor = DataProcessor()
     return processor.preprocess_data(df, target_col)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=3)  # 10분 TTL, 최대 3개 캐시
 def cached_analyze_outliers(series):
     """
     이상치 분석 캐싱
@@ -321,48 +321,56 @@ def cached_analyze_outliers(series):
     processor = DataProcessor()
     return processor.analyze_outliers(series)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=3)  # 10분 TTL, 최대 3개 캐시
 def cached_delete_outliers(series, mode):
     processor = DataProcessor()
     return processor.delete_outliers(series, mode)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_get_acf_pacf(series, nlags=40):
     """ACF/PACF 결과 캐싱"""
     processor = DataProcessor()
     return processor.get_acf_pacf(series, nlags)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_check_stationarity(series):
     """정상성 검정 결과 캐싱"""
     processor = DataProcessor()
     return processor.check_stationarity(series)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_get_fft(series):
     """고속푸리에변환 결과 캐싱"""
     processor = DataProcessor()
     return processor.get_fft(series)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)
 def cached_decompose_timeseries(series, period):
     """계절성 분해 결과 캐싱"""
     processor = DataProcessor()
     return processor.decompose_timeseries(series, period)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=3)
 def cached_perform_differencing(series, diff_order=1, seasonal_diff_order=0, seasonal_period=None):
     """차분 적용 결과 캐싱"""
     processor = DataProcessor()
     return processor.perform_differencing(series, diff_order, seasonal_diff_order, seasonal_period)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_recommend_differencing(series, acf_values=None, pacf_values=None):
     """차분 추천 결과 캐싱"""
     processor = DataProcessor()
     return processor.recommend_differencing(series, acf_values, pacf_values)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800, max_entries=3)  # 30분 TTL, 최대 3개 캐시
 def cached_train_test_split(series, test_size):
     """훈련/테스트 분할 캐싱"""
     processor = DataProcessor()

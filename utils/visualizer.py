@@ -798,7 +798,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         return fig
 
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=10)  # 10분 TTL, 최대 10개 캐시
 def cached_plot_timeseries(data, title, xlabel, ylabel, color='#1f77b4'):
     """
     시계열 그래프 캐싱
@@ -806,7 +807,8 @@ def cached_plot_timeseries(data, title, xlabel, ylabel, color='#1f77b4'):
     viz = TimeSeriesVisualizer()
     return viz.plot_timeseries(data, title=title, xlabel=xlabel, ylabel=ylabel, color=color) 
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=5)  # 10분 TTL, 최대 5개 캐시
 def cached_boxplot(data, title, xlabel, ylabel):
     """
     박스플롯 캐싱
@@ -814,31 +816,36 @@ def cached_boxplot(data, title, xlabel, ylabel):
     viz = TimeSeriesVisualizer()
     return viz.plot_boxplot(data, title=title, xlabel=xlabel, ylabel=ylabel)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=5)  # 5분 TTL, 최대 5개 캐시
 def cached_plot_acf_pacf(acf_values, pacf_values):
     """ACF/PACF 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_acf_pacf(acf_values, pacf_values)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_plot_fft(fft_result):
     """TTF 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_fft(fft_result)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_plot_decomposition(decomposition):
     """계절성 분해 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_decomposition(decomposition)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
 def cached_plot_differencing_comparison(original_series, differenced_series, title="차분 비교 (Differencing Comparison)"):
     """차분 비교 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_differencing_comparison(original_series, differenced_series, title=title)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800, max_entries=5)  # 30분 TTL, 최대 5개 캐시 (예측 결과는 더 오래 보관)
 # def cached_plot_forecast_comparison(train, test, forecasts):
 def cached_plot_forecast_comparison(train, test, forecasts):
     """예측 비교 그래프 캐싱"""
@@ -860,19 +867,22 @@ def cached_plot_forecast_comparison(train, test, forecasts):
         st.error(f"상세 오류: {traceback.format_exc()}")
         return None
     
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800, max_entries=3)  # 30분 TTL, 최대 3개 캐시
 def cached_plot_metrics_comparison(metrics):
     """메트릭 비교 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_metrics_comparison(metrics)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=3)  # 10분 TTL, 최대 3개 캐시
 def cached_plot_residuals(actual, predicted, title="Residual Analysis"):
     """잔차 분석 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_residuals(actual, predicted, title=title)
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
+@st.cache_data(ttl=600, max_entries=3)  # 10분 TTL, 최대 3개 캐시
 def cached_plot_residual_acf(residuals, max_lags=20, title="잔차의 자기상관함수 (ACF)"):
     """잔차 ACF 그래프 캐싱"""
     viz = TimeSeriesVisualizer()

@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd 
 import numpy as np
 import optuna
+import pickle
 
 from sklearn.preprocessing import MinMaxScaler
 from models.base_model import TimeSeriesModel 
@@ -17,14 +18,23 @@ try:
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
-    # GPU 메모리 증가 방지
     physical_devices = tf.config.list_physical_devices('GPU')
     if physical_devices:
         try:
             for device in physical_devices:
+                # 메모리 증가 방지
                 tf.config.experimental.set_memory_growth(device, True)
+                # 메모리 제한 설정 (1GB로 제한)
+                tf.config.set_logical_device_configuration(
+                    device,
+                    [tf.config.LogicalDeviceConfiguration(memory_limit=1024)]
+                )
         except Exception as e:
             warnings.warn(f"GPU 메모리 설정 중 오류 발생: {e}")
+    
+    # CPU 메모리 사용량 제한
+    tf.config.threading.set_inter_op_parallelism_threads(2)
+    tf.config.threading.set_intra_op_parallelism_threads(2)
     
     TF_AVAILABLE = True 
 
@@ -48,13 +58,16 @@ class LSTMModel(TimeSeriesModel):
         self.history = None 
         self.scaler_X = None
         self.scaler_y = None
-        self.time_step = None
-        self.forecast_horizon = None
+        self.time_step = st.session_state.time_step
+        self.forecast_horizon = st.session_state.forecast_horizon
+
+        self.df = st.session_state.df.copy()
+        self.target = st.session_state.target
         
         # 베이즈 최적화를 위한 탐색 공간 정의
         self.search_space = {
             # 시간 스텝 범위
-            'time_step_min': 3,
+            'time_step_min': 168,
             'time_step_max' : 168, # 1주
 
             # 모델 아키텍처
@@ -76,61 +89,96 @@ class LSTMModel(TimeSeriesModel):
             'epochs_min': 20,
             'epochs_max': 100
         }
+                # 특성 조합 (기존 방식 + 자동 선택)
+        self._prepare_feature_pool()
 
-    def _prepare_data(self, time_step):
+    def _prepare_feature_pool(self):
+        """특성 풀 준비 (Optuna가 자동으로 선택)"""
+        all_features = list(self.df.columns)
+        all_features.remove(self.target)
+
+        # 유량 특성들
+        self.flow_features = [col for col in all_features if '유량' in col]
+
+        # 시간 특성들
+        self.time_features = [col for col in all_features
+                             if col in ['weekday', 'hour', 'is_holiday', 'is_weekend', 'month']]
+
+        # 소블록 특성들
+        self.block_features = [col for col in all_features
+                              if '소블록' in col or '블록' in col]
+
+        # 전체 특성 풀
+        self.feature_pool = {
+            'target': [self.target],
+            'flow_features': self.flow_features,
+            'time_features': self.time_features,
+            'block_features': self.block_features
+        }
+
+    def _suggest_features(self, trial):
+        """Optuna가 특성 조합을 자동으로 제안"""
+        selected_features = [self.target]  # 타겟은 항상 포함
+
+        # 유량 특성 선택
+        if self.flow_features:
+            use_flow = trial.suggest_categorical('use_flow_features', [True, False])
+            if use_flow:
+                # 유량 특성 중 일부 선택
+                num_flow = trial.suggest_int('num_flow_features', 1,
+                                           min(len(self.flow_features), 5))
+                selected_flow = trial.suggest_categorical('selected_flow_features',
+                    [tuple(self.flow_features[:i]) for i in range(1, len(self.flow_features)+1)]
+                )[:num_flow]
+                selected_features.extend(list(selected_flow))
+
+        # 시간 특성 선택
+        if self.time_features:
+            use_time = trial.suggest_categorical('use_time_features', [True, False])
+            if use_time:
+                for feature in self.time_features:
+                    if trial.suggest_categorical(f'use_{feature}', [True, False]):
+                        selected_features.append(feature)
+
+        # 소블록 특성 선택
+        if self.block_features:
+            use_blocks = trial.suggest_categorical('use_block_features', [True, False])
+            if use_blocks:
+                num_blocks = trial.suggest_int('num_block_features', 1,
+                                             min(len(self.block_features), 3))
+                selected_blocks = self.block_features[:num_blocks]
+                selected_features.extend(selected_blocks)
+
+        return list(set(selected_features))  # 중복 제거
+
+    def _prepare_data(self, features, time_step):
         """데이터 준비 및 스케일링"""
         try:
-            if len(st.session_state.train) < 50 or len(st.session_state.test) < 10:
-                print(f"데이터가 충분하지 않습니다. train: {len(st.session_state.train)}, test: {len(st.session_state.test)}")
+            # 사용 가능한 특성만 선택
+            available_features = [f for f in features if f in self.df.columns]
+            if not available_features or self.target not in available_features:
                 return None
             
-            X_train, y_train = self._create_sequences(st.session_state.train, time_step)
-            X_test, y_test = self._create_sequences(st.session_state.test, time_step)
+            # 스케일러 초기화
+            scaler_X = MinMaxScaler(feature_range=(0, 1))
+            scaler_y = MinMaxScaler(feature_range=(0, 1))
 
-            if len(X_train) == 0 or len(X_test) == 0:
-                print(f"시퀀스 생성 실패. X_train: {len(X_train)}, X_test: {len(X_test)}")
+            # 특성과 타겟 분리
+            X_scaled = scaler_X.fit_transform(self.df[available_features])
+            y_scaled = scaler_y.fit_transform(self.df[[self.target]])
+
+            # 시계열 데이터셋 생성
+            X, y = self._create_sequences(X_scaled, y_scaled, time_step)
+
+            if len(X) < 20:  # 최소 데이터 요구사항
                 return None
 
-            # 이제 X_train, y_train은 이미 3D 형태여야 함
-            print(f"Original shapes - X_train: {X_train.shape}, y_train: {y_train.shape}")
-            
-            # 3D 데이터인지 확인
-            if X_train.ndim != 3 or y_train.ndim != 3:
-                print(f"경고: 예상과 다른 차원입니다. X_train: {X_train.ndim}D, y_train: {y_train.ndim}D")
-                return None
+            # 데이터 분할 (80:20)
+            train_size = int(len(X) * 0.8)
+            X_train, X_test = X[:train_size], X[train_size:]
+            y_train, y_test = y[:train_size], y[train_size:]
 
-            # 원본 3D 형태 저장
-            X_train_shape = X_train.shape
-            X_test_shape = X_test.shape
-            y_train_shape = y_train.shape
-            y_test_shape = y_test.shape
-
-            # 스케일링을 위해 2D로 변환 (samples, features)
-            # (n_samples, timesteps, features) -> (n_samples * timesteps, features)
-            X_train_2d = X_train.reshape(-1, X_train.shape[-1])
-            X_test_2d = X_test.reshape(-1, X_test.shape[-1])
-            y_train_2d = y_train.reshape(-1, y_train.shape[-1])
-            y_test_2d = y_test.reshape(-1, y_test.shape[-1])
-
-            # 스케일링
-            scaler_X = MinMaxScaler()
-            scaler_y = MinMaxScaler()
-
-            X_train_scaled_2d = scaler_X.fit_transform(X_train_2d)
-            X_test_scaled_2d = scaler_X.transform(X_test_2d)
-
-            y_train_scaled_2d = scaler_y.fit_transform(y_train_2d)
-            y_test_scaled_2d = scaler_y.transform(y_test_2d)
-
-            # 다시 3D로 변환 - 원본 형태 사용
-            X_train_scaled = X_train_scaled_2d.reshape(X_train_shape)
-            X_test_scaled = X_test_scaled_2d.reshape(X_test_shape)
-            y_train_scaled = y_train_scaled_2d.reshape(y_train_shape)
-            y_test_scaled = y_test_scaled_2d.reshape(y_test_shape)
-
-            print(f"Final shapes - X_train: {X_train_scaled.shape}, y_train: {y_train_scaled.shape}")
-
-            return X_train_scaled, X_test_scaled, y_train_scaled, y_test_scaled, scaler_X, scaler_y
+            return X_train, X_test, y_train, y_test, scaler_X, scaler_y
 
         except Exception as e:
             print(f"데이터 준비 중 오류: {e}")
@@ -138,7 +186,7 @@ class LSTMModel(TimeSeriesModel):
             traceback.print_exc()
             return None
 
-    def _create_sequences(self, data, time_step):
+    def _create_sequences(self, X, y, time_step):
         """
         시계열 데이터를 입력 시퀀스와 타겟으로 변환
         
@@ -150,47 +198,14 @@ class LSTMModel(TimeSeriesModel):
             (입력 시퀀스, 타겟) 튜플 - LSTM용 3D 형태
         """
         try:
+            """시계열 데이터셋 생성"""
             X_seq, y_seq = [], []
-                    # LSTM과 동일하게 step 설정 추가
 
-            time_step = st.session_state.time_step
-            forecast_horizon = st.session_state.forecast_horizon  # 24시간씩 점프
-            
-            print(f"Creating sequences with time_step: {time_step}, forecast_horizon: {forecast_horizon}")
-            print(f"Data type: {type(data)}, Data shape: {data.shape}")
-            
-            # pandas Series인 경우 numpy array로 변환
-            if hasattr(data, 'values'):
-                data = data.values
-                print(f"Converted pandas to numpy: {data.shape}")
-            
-            # numpy array가 아닌 경우 변환
-            if not isinstance(data, np.ndarray):
-                data = np.array(data)
-                print(f"Converted to numpy array: {data.shape}")
-            
-            # 데이터가 1D인 경우 2D로 변환 (n_samples, 1)
-            if data.ndim == 1:
-                data = data.reshape(-1, 1)
-                print(f"Reshaped data to 2D: {data.shape}")
-            
-            # 충분한 데이터가 있는지 확인
-            min_length = time_step + forecast_horizon
-            if len(data) < min_length:
-                print(f"데이터 길이가 충분하지 않습니다. 필요: {min_length}, 실제: {len(data)}")
-                return np.array([]).reshape(0, time_step, data.shape[1]), np.array([]).reshape(0, forecast_horizon, data.shape[1])
-            
-            for i in range(0, data.shape[0] - time_step - forecast_horizon + 1, forecast_horizon):
-                X_seq.append(data[i : i+time_step])  # (time_step, n_features)
-                y_seq.append(data[i+time_step : i+time_step+forecast_horizon])  # (forecast_horizon, n_features)
-            
-            # numpy 배열로 변환 - 자동으로 3D가 됨
-            X_array = np.array(X_seq)  # (n_sequences, time_step, n_features)
-            y_array = np.array(y_seq)  # (n_sequences, forecast_horizon, n_features)
-            
-            print(f"Generated sequences - X: {X_array.shape}, y: {y_array.shape}")
-            
-            return X_array, y_array
+            for i in range(0, len(X) - time_step - self.forecast_horizon + 1, self.forecast_horizon):
+                X_seq.append(X[i:i + time_step, :])
+                y_seq.append(y[i + time_step:i + time_step + self.forecast_horizon, 0])
+
+            return np.array(X_seq), np.array(y_seq)
             
         except Exception as e:
             print(f"시퀀스 생성 중 오류: {e}")
@@ -207,7 +222,6 @@ class LSTMModel(TimeSeriesModel):
         """모델 구축"""
         try:
             model = Sequential()
-            forecast_horizon = st.session_state.forecast_horizon
 
             # 셀 타입 선택
             cell_type = trial.suggest_categorical('cell_type', self.search_space['cell_type'])
@@ -257,23 +271,17 @@ class LSTMModel(TimeSeriesModel):
                                               self.search_space['dropout_max'])
                 model.add(Dropout(dropout3))
 
-            # 출력 레이어 - y의 형태에 맞게 조정
-            # y_train shape: (samples, forecast_horizon, n_features)
-            # 출력 크기: forecast_horizon * n_features
-            output_size = forecast_horizon * input_shape[1]  # forecast_horizon * n_features
-            model.add(Dense(output_size))
+            # 출력 레이어
+            model.add(Dense(self.forecast_horizon))
             
-            # Reshape layer 추가하여 올바른 출력 형태로 변환
-            model.add(tf.keras.layers.Reshape((forecast_horizon, input_shape[1])))
-
             # 학습률
             learning_rate = trial.suggest_float('learning_rate',
-                                                self.search_space['learning_rate_min'],
-                                                self.search_space['learning_rate_max'],
-                                                log=True)
+                                            self.search_space['learning_rate_min'],
+                                            self.search_space['learning_rate_max'],
+                                            log=True)
 
             model.compile(optimizer=Adam(learning_rate=learning_rate),
-                          loss='mean_squared_error')
+                        loss='mean_squared_error')
             
             return model
             
@@ -289,14 +297,12 @@ class LSTMModel(TimeSeriesModel):
                                         self.search_space['time_step_min'],
                                         self.search_space['time_step_max'])
 
-            print(f"Trial {trial.number}: time_step={time_step}")
+            features = self._suggest_features(trial)
 
             # 데이터 준비
-            data_result = self._prepare_data(time_step)
-            
+            data_result = self._prepare_data(features, time_step)
             if data_result is None:
-                print(f"Trial {trial.number}: 데이터 준비 실패")
-                return float('inf')  # None 대신 큰 값 반환
+                raise optuna.TrialPruned()
             
             X_train, X_test, y_train, y_test, scaler_X, scaler_y = data_result
             
@@ -328,29 +334,17 @@ class LSTMModel(TimeSeriesModel):
                 )
             
             # 예측 및 평가
-            y_pred_scaled = model.predict(X_test, verbose=0)
+            y_pred = model.predict(X_test, verbose=0)
+            y_pred_rescaled = scaler_y.inverse_transform(y_pred)
+            y_test_rescaled = scaler_y.inverse_transform(y_test)
 
-            # 차원 맞추기
-            if y_pred_scaled.ndim == 2 and y_test.ndim == 3:
-                y_pred_scaled = y_pred_scaled.reshape(y_test.shape)
+            rmse = np.sqrt(mean_squared_error(y_test_rescaled, y_pred_rescaled))
 
-            # 2D로 변환하여 스케일러 적용
-            y_pred_2d = y_pred_scaled.reshape(-1, y_pred_scaled.shape[-1])
-            y_test_2d = y_test.reshape(-1, y_test.shape[-1])
-
-            # 원래 스케일로 변환
-            y_pred_rescaled = scaler_y.inverse_transform(y_pred_2d)
-            y_test_rescaled = scaler_y.inverse_transform(y_test_2d)
-            
-            rmse = root_mean_squared_error(y_test_rescaled, y_pred_rescaled)
-            mae = mean_absolute_error(y_test_rescaled, y_pred_rescaled)
-            
-            print(f"Trial {trial.number}: RMSE={rmse:.4f}, MAE={mae:.4f}")
-            
             # 중간 결과 저장 (최적화 과정 추적)
+            trial.set_user_attr('features', features)
             trial.set_user_attr('rmse', rmse)
-            trial.set_user_attr('mae', mae)
-            
+            trial.set_user_attr('mae', mean_absolute_error(y_test_rescaled, y_pred_rescaled))
+
             return rmse
         
         except Exception as e:
@@ -369,12 +363,15 @@ class LSTMModel(TimeSeriesModel):
             print(f"  - LSTM units: {self.search_space['lstm1_units_min']}~{self.search_space['lstm1_units_max']}")
             print(f"  - 레이어 수: {self.search_space['num_layers']}")
             print(f"  - 셀 타입: {self.search_space['cell_type']}")
+            print()
 
         # Optuna study 생성
         study = optuna.create_study(
             direction='minimize',  # RMSE 최소화
-            sampler=optuna.samplers.TPESampler(seed=42),  # 베이즈 최적화
-            pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
+            # sampler=optuna.samplers.TPESampler(seed=42),  # 베이즈 최적화
+            # pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
+            sampler=optuna.samplers.TPESampler(seed=42, n_startup_trials=3),  # 시작 trial 수 감소
+            pruner=optuna.pruners.MedianPruner(n_startup_trials=3, n_warmup_steps=5)  # 더 빠른 pruning
         )
 
         # 최적화 실행
@@ -423,9 +420,10 @@ class LSTMModel(TimeSeriesModel):
         try:
             # 최적 파라미터 추출
             params = best_trial.params
+            features = best_trial.user_attrs['features']
 
             # 데이터 준비
-            data_result = self._prepare_data(params['time_step'])
+            data_result = self._prepare_data(features, params['time_step'])
             if data_result is None:
                 return None
 
@@ -450,29 +448,29 @@ class LSTMModel(TimeSeriesModel):
             )
 
             # 최종 평가
-            y_pred_scaled = model.predict(X_test, verbose=0)
-            
-            # 차원 맞추기
-            if y_pred_scaled.ndim == 2 and y_test.ndim == 3:
-                y_pred_scaled = y_pred_scaled.reshape(y_test.shape)
+            y_pred = model.predict(X_test, verbose=0)
+            y_pred_rescaled = scaler_y.inverse_transform(y_pred)
+            y_test_rescaled = scaler_y.inverse_transform(y_test)
 
-            # 2D로 변환하여 스케일러 적용
-            y_pred_2d = y_pred_scaled.reshape(-1, y_pred_scaled.shape[-1])
-            y_test_2d = y_test.reshape(-1, y_test.shape[-1])
-
-            y_pred_rescaled = scaler_y.inverse_transform(y_pred_2d)
-            y_test_rescaled = scaler_y.inverse_transform(y_test_2d)
-
-            rmse = root_mean_squared_error(y_test_rescaled, y_pred_rescaled)
+            rmse = np.sqrt(mean_squared_error(y_test_rescaled, y_pred_rescaled))
             mae = mean_absolute_error(y_test_rescaled, y_pred_rescaled)
+
+            model.save(f"best_lstm_model.h5")
+            # 스케일러 저장
+            with open(f"scaler_X.pkl", "wb") as f:
+                pickle.dump(scaler_X, f)
+            with open(f"scaler_y.pkl", "wb") as f:
+                pickle.dump(scaler_y, f)
 
             return {
                 'model': model,
                 'rmse': rmse,
                 'mae': mae,
+                'features': features,
                 'best_params': params,
                 'history': history.history,
                 'scalers': (scaler_X, scaler_y),
+                # 이 두 줄 추가
                 'test_predictions': y_pred_rescaled.flatten(),
                 'test_actual': y_test_rescaled.flatten()
             }
