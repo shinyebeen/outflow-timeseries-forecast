@@ -9,10 +9,6 @@ from backend.visualization_service import visualize_timeseries
 st.header("데이터 요약 정보")
 st.markdown(' ')
 
-# 데이터 변경 상태 표시
-if hasattr(st.session_state, 'outliers_removed') and st.session_state.outliers_removed:
-    st.info("ℹ️ 이상치가 제거된 데이터를 표시하고 있습니다.")
-
 if st.session_state.df is not None and not st.session_state.df.empty:
     # 데이터 요약 정보 표시
     render_data_summary(st.session_state.df)
