@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timedelta
 
 from frontend.session_state import reset_data_results
 from utils.data_processor import (cached_preprocess_data,
@@ -12,6 +13,39 @@ from utils.data_processor import (cached_preprocess_data,
                                  cached_recommend_differencing,
                                  cached_perform_differencing,
                                  cached_train_test_split)
+# @st.cache_data(ttl=3600)
+# def load_data(file_path):
+#     if file_path.name.endswith('.csv'):
+#         df = pd.read_csv(file_path)
+#     elif file_path.name.endswith('.xlsx'):
+#         df = pd.read_excel(file_path)
+
+#     # 날짜 형식 컬럼 확인 후 에러 처리
+#     for i in df.columns:
+#         if pd.api.types.is_datetime64_any_dtype(df[i]):
+#             df.rename(columns={i: 'logTime'}, inplace=True)
+#             break
+#         if pd.api.types.is_string_dtype(df[i]):
+#             try:
+#                 df[i] = pd.to_datetime(df[i])
+#                 df.rename(columns={i: 'logTime'}, inplace=True)
+#                 break
+#             except ValueError:
+#                 continue
+
+#     reset_data_results()
+#     st.session_state.df = df
+
+def fix_24_hour(time_str):
+    s = str(time_str).strip()
+    if ' 24:00' in s or s.endswith('24:00:00'):
+        date_part = s.split(' ')[0]               # 'YYYY/MM/DD'
+        new_date = datetime.strptime(date_part, '%Y/%m/%d') + timedelta(days=1)
+        # 초가 있던 케이스까지 커버
+        has_seconds = s.endswith('24:00:00')
+        return new_date.strftime('%Y/%m/%d') + (' 00:00:00' if has_seconds else ' 00:00')
+    return s
+
 @st.cache_data(ttl=3600)
 def load_data(file_path):
     if file_path.name.endswith('.csv'):
@@ -19,18 +53,23 @@ def load_data(file_path):
     elif file_path.name.endswith('.xlsx'):
         df = pd.read_excel(file_path)
 
-    # 날짜 형식 컬럼 확인 후 에러 처리
-    for i in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[i]):
-            df.rename(columns={i: 'logTime'}, inplace=True)
+    # 날짜 형식 컬럼 확인 후 변환
+    for column in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[column]):
+            df[column] = df[column].apply(fix_24_hour)
+            df.rename(columns={column: 'logTime'}, inplace=True)
             break
-        if pd.api.types.is_string_dtype(df[i]):
+        if pd.api.types.is_string_dtype(df[column]):
             try:
-                df[i] = pd.to_datetime(df[i])
-                df.rename(columns={i: 'logTime'}, inplace=True)
+                df[column] = df[column].apply(fix_24_hour)
+                df[column] = pd.to_datetime(df[column], errors='coerce', infer_datetime_format=True)
+                df.rename(columns={column: 'logTime'}, inplace=True)
                 break
             except ValueError:
                 continue
+
+    if 'logTime' not in df.columns:
+        raise ValueError("날짜 형식의 컬럼을 찾을 수 없습니다.")
 
     reset_data_results()
     st.session_state.df = df
@@ -105,11 +144,24 @@ def delete_outliers(mode):
     """
     이상치 제거 함수 
     """
+    # if st.session_state.series is not None:
+    #     cleaned_series = cached_delete_outliers(st.session_state.series, mode)
+    #     st.session_state.cleaned_series = cleaned_series 
+
+    #     return cleaned_series 
+    
     if st.session_state.series is not None:
         cleaned_series = cached_delete_outliers(st.session_state.series, mode)
-        st.session_state.cleaned_series = cleaned_series 
+        
+        if cleaned_series is not None:
+            # 원본 시리즈의 인덱스를 사용하여 새로운 시리즈 생성
+            original_index = st.session_state.series.index
+            mask = ~st.session_state.series.index.isin(cleaned_series.index)
+            cleaned_series_with_index = st.session_state.series[~mask]
+            
+            st.session_state.cleaned_series = cleaned_series_with_index
+            return cleaned_series_with_index
 
-        return cleaned_series 
 
     return None
 
