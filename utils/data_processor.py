@@ -69,10 +69,12 @@ class DataProcessor(metaclass = Singleton):
 
         # 표준 기준 (1.5 × IQR)
         lower_standard = Q1 - 1.5 * IQR
+        lower_standard = lower_standard if lower_standard > 0 else 0  # 음수 방지
         upper_standard = Q3 + 1.5 * IQR
 
         # 보수적 기준 (3.0 × IQR)
         lower_conservative = Q1 - 3.0 * IQR
+        lower_conservative = lower_conservative if lower_conservative > 0 else 0  # 음수 방지
         upper_conservative = Q3 + 3.0 * IQR
 
         total_standard = len(st.session_state.series[(st.session_state.series < lower_standard)|(st.session_state.series > upper_standard)])
