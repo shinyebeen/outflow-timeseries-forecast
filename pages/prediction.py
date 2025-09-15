@@ -3,10 +3,11 @@ import streamlit as st
 import json
 from backend.visualization_service import visualize_forecast_comparison, visualize_metrics_comparison
 
+st.header("모델 예측 결과")
+st.markdown(' ')
+
 # 모델 학습 결과 표시
 if hasattr(st.session_state, 'model_results') and st.session_state.model_results is not None:
-    st.markdown("---")
-    st.subheader("📊 모델 예측 결과")
 
     # 예측 결과 비교 시각화
     comparison_fig = visualize_forecast_comparison()

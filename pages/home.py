@@ -6,7 +6,8 @@ import plotly.express as px
 from frontend.components import render_data_summary
 from backend.visualization_service import visualize_timeseries
 
-st.title("데이터 요약")
+st.header("데이터 요약 정보")
+st.markdown(' ')
 
 # 데이터 변경 상태 표시
 if hasattr(st.session_state, 'outliers_removed') and st.session_state.outliers_removed:
@@ -40,19 +41,6 @@ if st.session_state.df is not None and not st.session_state.df.empty:
             st.warning(f"시계열 데이터 생성 중 오류: {str(e)}")
     else:
         st.warning("시계열 데이터가 없습니다. 사이드바에서 분석할 변수를 선택해주세요.")
-
-    # # 데이터 상태 정보
-    # col1, col2, col3 = st.columns(3)
-    # with col1:
-    #     st.metric("총 데이터 수", f"{len(st.session_state.df):,}개")
-    # with col2:
-    #     if hasattr(st.session_state, 'outliers_removed') and st.session_state.outliers_removed:
-    #         st.metric("데이터 상태", "이상치 제거됨", delta="정제됨")
-    #     else:
-    #         st.metric("데이터 상태", "원본 데이터")
-    # with col3:
-    #     if hasattr(st.session_state, 'series') and st.session_state.series is not None:
-    #         st.metric("시계열 데이터 수", f"{len(st.session_state.series):,}개")
 
     st.markdown("**데이터 확인하기**")    
     st.dataframe(st.session_state.df, use_container_width=True, hide_index=True)

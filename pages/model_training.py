@@ -12,8 +12,9 @@ from backend.data_service import (
 )
 
 # 페이지 제목
-st.title("🤖 모델 학습 및 예측")
+st.header("모델 학습 및 예측")
 st.markdown("시계열 데이터에 대한 다양한 예측 모델을 학습하고 성능을 비교합니다.")
+st.markdown(' ')
 
 # 데이터 및 시계열 정보 확인
 if st.session_state.df is None:
@@ -22,9 +23,6 @@ if st.session_state.df is None:
 elif st.session_state.series is None:
     st.warning("시계열 데이터가 생성되지 않았습니다. 사이드바에서 분석 변수와 측정소를 선택해주세요.")
     st.stop()
-
-# 모델 학습 섹션
-st.markdown("## 모델 설정 및 학습")
 
 # 모델 팩토리 가져오기
 model_factory = get_model_factory()

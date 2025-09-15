@@ -84,7 +84,6 @@ def render_data_summary(df):
     Args:
         df: 데이터프레임
     """
-    st.subheader("데이터 요약 정보")
 
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
     

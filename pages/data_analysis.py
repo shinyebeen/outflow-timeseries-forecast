@@ -15,7 +15,8 @@ from backend.visualization_service import (visualize_boxplot,
                                            visualize_fft,
                                            visualize_decomposition)
 
-st.title("Data Analysis Page")
+st.header("데이터 분석")
+st.markdown(' ')
 
 tab1, tab2, tab3, tab4 = st.tabs(['이상치 처리', '정상성 판단', '시계열 분해', '주파수 분석'])
 

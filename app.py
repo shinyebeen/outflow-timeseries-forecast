@@ -30,10 +30,10 @@ def main():
     )
 
     pages = {
-        "Home": [st.Page("pages/home.py", title="데이터 요약")],
-        "Data Analysis": [st.Page("pages/data_analysis.py", title="Data Analysis")],
-        "Model Training": [st.Page("pages/model_training.py", title="Model Training")],
-        "Prediction": [st.Page("pages/prediction.py", title="Prediction")],
+        "Home": [st.Page("pages/home.py", title="데이터 요약 정보")],
+        "Data Analysis": [st.Page("pages/data_analysis.py", title="데이터 분석")],
+        "Model Training": [st.Page("pages/model_training.py", title="모델 학습 및 예측")],
+        "Prediction": [st.Page("pages/prediction.py", title="모델 예측 결과")],
     }
     
     pg = st.navigation(pages, position="sidebar")
