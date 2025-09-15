@@ -431,8 +431,12 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         
         return fig
     
+    # def plot_forecast_comparison(self,
+    #                         train: pd.Series,
+    #                         test: pd.Series,
+    #                         forecasts: dict[str, np.ndarray],
+                            # **kwargs) -> go.Figure:
     def plot_forecast_comparison(self,
-                            train: pd.Series,
                             test: pd.Series,
                             forecasts: dict[str, np.ndarray],
                             **kwargs) -> go.Figure:
@@ -847,7 +851,8 @@ def cached_plot_differencing_comparison(original_series, differenced_series, tit
 # @st.cache_data(ttl=3600)
 @st.cache_data(ttl=1800, max_entries=5)  # 30분 TTL, 최대 5개 캐시 (예측 결과는 더 오래 보관)
 # def cached_plot_forecast_comparison(train, test, forecasts):
-def cached_plot_forecast_comparison(train, test, forecasts):
+# def cached_plot_forecast_comparison(train, test, forecasts):
+def cached_plot_forecast_comparison(test, forecasts):
     """예측 비교 그래프 캐싱"""
     try:
         test = pd.Series(test)
@@ -860,7 +865,8 @@ def cached_plot_forecast_comparison(train, test, forecasts):
                 forecasts[model_name] = pd.Series(forecast[:min_len], index=test.index[:min_len])
                 
         viz = TimeSeriesVisualizer()
-        return viz.plot_forecast_comparison(train, test, forecasts)
+        # return viz.plot_forecast_comparison(train, test, forecasts)
+        return viz.plot_forecast_comparison(test, forecasts)
     except Exception as e:
         st.error(f"예측 비교 그래프 생성 중 오류: {str(e)}")
         import traceback

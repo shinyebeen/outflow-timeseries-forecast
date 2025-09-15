@@ -12,6 +12,8 @@ def initialize_session_state():
     # 데이터 변수 
     if 'df' not in st.session_state:
         st.session_state.df = None
+    if 'original_df' not in st.session_state:
+        st.session_state.original_df = None  # 원본 데이터 저장용
     if 'target' not in st.session_state:
         st.session_state.target = None
 
@@ -84,6 +86,12 @@ def initialize_session_state():
         st.session_state.strategy = 'smart'
     if 'file_data' not in st.session_state:
         st.session_state.file_data = None
+    
+    # 데이터 변경 추적 변수
+    if 'data_updated' not in st.session_state:
+        st.session_state.data_updated = False
+    if 'outliers_removed' not in st.session_state:
+        st.session_state.outliers_removed = False
 
     # 사용자 선택 변경 추적 변수 
     if 'active_page' not in st.session_state:

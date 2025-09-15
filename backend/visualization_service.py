@@ -167,10 +167,10 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
         if forecast['result']['best_model'] is not None:
             results = forecast['result']['best_model']
 
-            if len(test_data) != len(results['test_predictions']):
-                min_len = min(len(test_data), len(results['test_predictions']))
+            if len(results['test_actual']) != len(results['test_predictions']):
+                min_len = min(results['test_actual'], len(results['test_predictions']))
                 if min_len > 0:
-                    st.warning(f"{model_name} 모델의 예측 길이({len(results['test_predictions'])})가 테스트 데이터 길이({len(test_data)})와 다릅니다. 최소 길이({min_len})로 조정합니다.")
+                    st.warning(f"{model_name} 모델의 예측 길이({len(results['test_predictions'])})가 테스트 데이터 길이({len(results['test_actual'])})와 다릅니다. 최소 길이({min_len})로 조정합니다.")
                     valid_forecasts[model_name] = results['test_predictions'][:min_len]
                 else:
                     st.warning(f"{model_name} 모델의 예측 결과를 시각화에서 제외합니다.")
@@ -198,8 +198,8 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
     
     try:
         comparison_fig = cached_plot_forecast_comparison(
-            train_data, 
-            test_data, 
+            # train_data, 
+            results['test_actual'], 
             valid_forecasts
         )
         # comparison_fig = cached_plot_forecast_comparison(

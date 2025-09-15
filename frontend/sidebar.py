@@ -30,10 +30,18 @@ def render_data_load_section():
     if file is not None:
         try:
             load_data(file)
+            # 원본 데이터 저장 (첫 업로드 시에만, 데이터가 성공적으로 로드된 경우에만)
+            if (st.session_state.original_df is None and 
+                st.session_state.df is not None and 
+                not st.session_state.df.empty):
+                st.session_state.original_df = st.session_state.df.copy()
         
         except ValueError as e:
             st.session_state.df = None
             st.sidebar.error("날짜 형식 열을 포함한 데이터를 업로드해주세요.")
+        except Exception as e:
+            st.session_state.df = None
+            st.sidebar.error(f"파일 로드 중 오류가 발생했습니다: {str(e)}")
         
     else:
         st.sidebar.warning("파일을 선택해주세요.")
