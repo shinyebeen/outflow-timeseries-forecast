@@ -96,8 +96,6 @@ if st.session_state.series is not None:
                 st.warning("이상치 분석을 먼저 수행해주세요.")
 
     with tab2:
-
-        st.subheader("정상성")
         
         # 정상성 검정 수행
         stationarity_result = analyze_stationarity()
