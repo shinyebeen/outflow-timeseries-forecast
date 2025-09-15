@@ -4,6 +4,7 @@
 
 import json
 import streamlit as st
+import numpy as np
 from utils.visualizer import (cached_plot_timeseries, 
                               cached_boxplot, 
                               cached_plot_acf_pacf,
@@ -51,7 +52,9 @@ def visualize_boxplot():
         return fig
     return None
 
-def visualize_acf_pacf():
+def visualize_acf_pacf(acf_values: np.ndarray,
+                       pacf_values: np.ndarray,
+                       lags: int = 10):
     """
     ACF/PACF 시각화
     
@@ -59,7 +62,7 @@ def visualize_acf_pacf():
         plotly.graph_objects.Figure: ACF/PACF 그래프
     """
     if st.session_state.acf_values is not None and st.session_state.pacf_values is not None:
-        acf_pacf_fig = cached_plot_acf_pacf(st.session_state.acf_values, st.session_state.pacf_values)
+        acf_pacf_fig = cached_plot_acf_pacf(st.session_state.acf_values, st.session_state.pacf_values, lags)
         return acf_pacf_fig
     return None
 

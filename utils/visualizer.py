@@ -911,10 +911,10 @@ def cached_boxplot(data, title, xlabel, ylabel):
 
 # @st.cache_data(ttl=3600)
 @st.cache_data(ttl=300, max_entries=5)  # 5분 TTL, 최대 5개 캐시
-def cached_plot_acf_pacf(acf_values, pacf_values):
+def cached_plot_acf_pacf(acf_values, pacf_values, lags):
     """ACF/PACF 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
-    return viz.plot_acf_pacf(acf_values, pacf_values)
+    return viz.plot_acf_pacf(acf_values, pacf_values, lags)
 
 # @st.cache_data(ttl=3600)
 @st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시

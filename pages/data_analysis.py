@@ -222,7 +222,9 @@ if st.session_state.series is not None:
         if st.session_state.acf_values is not None and st.session_state.pacf_values is not None:
             st.markdown("### ACF/PACF 그래프")
 
-            acf_pacf_fig = visualize_acf_pacf()
+            acf_pacf_fig = visualize_acf_pacf(acf_values = st.session_state.acf_values,
+                                              pacf_values = st.session_state.pacf_values,
+                                              lags = nlags)
             if acf_pacf_fig:
                 st.plotly_chart(acf_pacf_fig, use_container_width=True, theme="streamlit")
             else:
