@@ -97,6 +97,8 @@ if st.session_state.series is not None:
                 st.warning("이상치 분석을 먼저 수행해주세요.")
 
     with tab2:
+        # 정상성 평가(acf, pacf)
+        st.markdown("### ADF 정상성 검정")
         
         # 정상성 검정 수행
         stationarity_result = analyze_stationarity()
@@ -111,9 +113,9 @@ if st.session_state.series is not None:
             with st.container():
                 # 정상성 여부 먼저 큰 글씨로 표시
                 if st.session_state.stationarity_result['is_stationary']:
-                    st.success("### 정상성 만족")
+                    st.success("정상성 만족")
                 else:
-                    st.warning("### 시계열 데이터가 정상성을 만족하지 않습니다")
+                    st.warning("시계열 데이터가 정상성을 만족하지 않습니다")
                     
                 # 설명 추가
                 with st.expander("정상성 판단 기준 설명", expanded=False):
@@ -166,7 +168,7 @@ if st.session_state.series is not None:
                 )
                 
                 # 임계값 카드
-                st.markdown("### 📊 임계값 (Critical Values)")
+                # st.markdown("### 📊 임계값 (Critical Values)")
                 
                 # 임계값 표시를 위한 3개 컬럼
                 crit_col1, crit_col2, crit_col3 = st.columns(3)
@@ -211,7 +213,7 @@ if st.session_state.series is not None:
         st.markdown("---")
 
         # 정상성 평가(acf, pacf)
-        st.subheader("ACF/PACF Plot")
+        st.markdown("### ACF/PACF 그래프")
         
         # ACF/PACF 분석 버튼
         nlags = st.slider("최대 시차(lag) 수", min_value=10, max_value=100, value=10, step=5)
@@ -221,7 +223,6 @@ if st.session_state.series is not None:
         
         # ACF/PACF 분석 결과 표시
         if st.session_state.acf_values is not None and st.session_state.pacf_values is not None:
-            st.markdown("### ACF/PACF 그래프")
 
             acf_pacf_fig = visualize_acf_pacf(acf_values = st.session_state.acf_values,
                                               pacf_values = st.session_state.pacf_values,
@@ -242,7 +243,7 @@ if st.session_state.series is not None:
                 st.error("시계열 분해 도중 오류가 발생했습니다.")
             
             else:
-                st.success("시계열 분해 완료!")                
+                st.success("시계열 분해 완료")                
                 
                 # 설명 추가
                 with st.expander("시계열 분해 그래프 해석 방법", expanded=False):
