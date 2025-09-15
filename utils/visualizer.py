@@ -109,132 +109,221 @@ class TimeSeriesVisualizer(metaclass=Singleton):
             
         Returns:
             Plotly Figure 객체
+            
         """
-        # 서브플롯 생성
+    def plot_acf_pacf(self,
+                      acf_values: np.ndarray,
+                      pacf_values: np.ndarray,
+                      lags: int = 10,
+                      **kwargs) -> go.Figure:
+        """
+        ACF, PACF stem plot (marker + vertical line).
+        """
+
+        x_vals = np.arange(len(acf_values))[:lags+1]
+
+        # 95% 신뢰구간
+        conf_level = 1.96 / np.sqrt(len(acf_values))
+
         fig = make_subplots(
             rows=1, cols=2,
-            subplot_titles=(
-                '자기상관 함수 (Autocorrelation Function)',
-                '부분 자기상관 함수 (Partial Autocorrelation Function)'
-            )
+            subplot_titles=("자기상관 함수 (Autocorrelation Function)",
+                            "부분 자기상관 함수 (Partial Autocorrelation Function)")
         )
-        
-        # x축 값 (lags)
-        x = list(range(len(acf_values)))
-        
-        # 신뢰 구간 계산 (95%)
-        confidence = 1.96 / np.sqrt(len(acf_values))
-        
-        # ACF 플롯 - stem 효과 (마커와 선 조합)
-        for i in range(len(acf_values)):
+
+        # --- ACF ---
+        for x, y in zip(x_vals, acf_values[:lags+1]):
             fig.add_trace(
-                go.Scatter(
-                    x=[i, i], 
-                    y=[0, acf_values[i]], 
-                    mode='lines',
-                    line=dict(color='blue', width=1),
-                    showlegend=False
-                ),
+                go.Scatter(x=[x, x], y=[0, y],
+                        mode="lines",
+                        line=dict(color="blue"),
+                        showlegend=False),
                 row=1, col=1
             )
-        
-        # ACF 마커
-        fig.add_trace(
-            go.Scatter(
-                x=x, 
-                y=acf_values, 
-                mode='markers',
-                marker=dict(color='blue', size=8),
-                name='ACF'
-            ),
-            row=1, col=1
-        )
-        
-        # 신뢰 구간 추가
-        fig.add_trace(
-            go.Scatter(
-                x=[0, len(acf_values)-1],
-                y=[confidence, confidence],
-                mode='lines',
-                line=dict(color='gray', width=1, dash='dash'),
-                showlegend=False
-            ),
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(
-                x=[0, len(acf_values)-1],
-                y=[-confidence, -confidence],
-                mode='lines',
-                line=dict(color='gray', width=1, dash='dash'),
-                showlegend=False
-            ),
-            row=1, col=1
-        )
-        
-        # PACF 플롯 - stem 효과
-        for i in range(len(pacf_values)):
             fig.add_trace(
-                go.Scatter(
-                    x=[i, i], 
-                    y=[0, pacf_values[i]], 
-                    mode='lines',
-                    line=dict(color='blue', width=1),
-                    showlegend=False
-                ),
+                go.Scatter(x=[x], y=[y],
+                        mode="markers",
+                        marker=dict(color="blue", size=8),
+                        showlegend=False),
+                row=1, col=1
+            )
+
+        # --- PACF ---
+        for x, y in zip(x_vals, pacf_values[:lags+1]):
+            fig.add_trace(
+                go.Scatter(x=[x, x], y=[0, y],
+                        mode="lines",
+                        line=dict(color="blue"),
+                        showlegend=False),
                 row=1, col=2
             )
-        
-        # PACF 마커
-        fig.add_trace(
-            go.Scatter(
-                x=x, 
-                y=pacf_values, 
-                mode='markers',
-                marker=dict(color='blue', size=8),
-                name='PACF'
-            ),
-            row=1, col=2
-        )
-        
-        # PACF 신뢰 구간
-        fig.add_trace(
-            go.Scatter(
-                x=[0, len(pacf_values)-1],
-                y=[confidence, confidence],
-                mode='lines',
-                line=dict(color='gray', width=1, dash='dash'),
-                showlegend=False
-            ),
-            row=1, col=2
-        )
-        
-        fig.add_trace(
-            go.Scatter(
-                x=[0, len(pacf_values)-1],
-                y=[-confidence, -confidence],
-                mode='lines',
-                line=dict(color='gray', width=1, dash='dash'),
-                showlegend=False
-            ),
-            row=1, col=2
-        )
-        
-        # 레이아웃 업데이트
+            fig.add_trace(
+                go.Scatter(x=[x], y=[y],
+                        mode="markers",
+                        marker=dict(color="blue", size=8),
+                        showlegend=False),
+                row=1, col=2
+            )
+
+        # --- 신뢰구간 (ACF, PACF 동일) ---
+        for col in [1, 2]:
+            # 상한선 / 하한선
+            fig.add_hline(y=conf_level, line=dict(color="red", dash="dot"), row=1, col=col)
+            fig.add_hline(y=-conf_level, line=dict(color="red", dash="dot"), row=1, col=col)
+
+            # 음영 영역 (confidence band)
+            fig.add_trace(
+                go.Scatter(
+                    x=[x_vals[0], x_vals[-1], x_vals[-1], x_vals[0]],
+                    y=[-conf_level, -conf_level, conf_level, conf_level],
+                    fill="toself",
+                    fillcolor="rgba(255,0,0,0.1)",
+                    line=dict(color="rgba(255,0,0,0)"),
+                    showlegend=False
+                ),
+                row=1, col=col
+            )
+
+        # 기준선 y=0
+        fig.add_hline(y=0, line=dict(color="black", width=1), row=1, col=1)
+        fig.add_hline(y=0, line=dict(color="black", width=1), row=1, col=2)
+
+        # 레이아웃
         fig.update_layout(
-            height=400,
-            margin=dict(l=10, r=10, t=50, b=10),
-            showlegend=False,
+            title_text="Autocorrelation Analysis (with 95% Confidence Interval)",
+            xaxis_title="지연 (Lag)",
+            yaxis_title="상관도 (Correlation)",
+            xaxis2_title="지연 (Lag)",
+            yaxis2_title="상관도 (Correlation)",
+            **kwargs
         )
-        
-        # x축 및 y축 레이블
-        fig.update_xaxes(title_text='지연 (Lag)', row=1, col=1)
-        fig.update_xaxes(title_text='지연 (Lag)', row=1, col=2)
-        fig.update_yaxes(title_text='상관도 (Correlation)', row=1, col=1)
-        fig.update_yaxes(title_text='상관도 (Correlation)', row=1, col=2)
-        
+
         return fig
+        # # 서브플롯 생성
+        # fig = make_subplots(
+        #     rows=1, cols=2,
+        #     subplot_titles=(
+        #         '자기상관 함수 (Autocorrelation Function)',
+        #         '부분 자기상관 함수 (Partial Autocorrelation Function)'
+        #     )
+        # )
+        
+        # # x축 값 (lags)
+        # x = list(range(len(acf_values)))
+        
+        # # 신뢰 구간 계산 (95%)
+        # confidence = 1.96 / np.sqrt(len(acf_values))
+        
+        # # ACF 플롯 - stem 효과 (마커와 선 조합)
+        # for i in range(len(acf_values)):
+        #     fig.add_trace(
+        #         go.Scatter(
+        #             x=[i, i], 
+        #             y=[0, acf_values[i]], 
+        #             mode='lines',
+        #             line=dict(color='blue', width=1),
+        #             showlegend=False
+        #         ),
+        #         row=1, col=1
+        #     )
+        
+        # # ACF 마커
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=x, 
+        #         y=acf_values, 
+        #         mode='markers',
+        #         marker=dict(color='blue', size=8),
+        #         name='ACF'
+        #     ),
+        #     row=1, col=1
+        # )
+        
+        # # 신뢰 구간 추가
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=[0, len(acf_values)-1],
+        #         y=[confidence, confidence],
+        #         mode='lines',
+        #         line=dict(color='gray', width=1, dash='dash'),
+        #         showlegend=False
+        #     ),
+        #     row=1, col=1
+        # )
+        
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=[0, len(acf_values)-1],
+        #         y=[-confidence, -confidence],
+        #         mode='lines',
+        #         line=dict(color='gray', width=1, dash='dash'),
+        #         showlegend=False
+        #     ),
+        #     row=1, col=1
+        # )
+        
+        # # PACF 플롯 - stem 효과
+        # for i in range(len(pacf_values)):
+        #     fig.add_trace(
+        #         go.Scatter(
+        #             x=[i, i], 
+        #             y=[0, pacf_values[i]], 
+        #             mode='lines',
+        #             line=dict(color='blue', width=1),
+        #             showlegend=False
+        #         ),
+        #         row=1, col=2
+        #     )
+        
+        # # PACF 마커
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=x, 
+        #         y=pacf_values, 
+        #         mode='markers',
+        #         marker=dict(color='blue', size=8),
+        #         name='PACF'
+        #     ),
+        #     row=1, col=2
+        # )
+        
+        # # PACF 신뢰 구간
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=[0, len(pacf_values)-1],
+        #         y=[confidence, confidence],
+        #         mode='lines',
+        #         line=dict(color='gray', width=1, dash='dash'),
+        #         showlegend=False
+        #     ),
+        #     row=1, col=2
+        # )
+        
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=[0, len(pacf_values)-1],
+        #         y=[-confidence, -confidence],
+        #         mode='lines',
+        #         line=dict(color='gray', width=1, dash='dash'),
+        #         showlegend=False
+        #     ),
+        #     row=1, col=2
+        # )
+        
+        # # 레이아웃 업데이트
+        # fig.update_layout(
+        #     height=400,
+        #     margin=dict(l=10, r=10, t=50, b=10),
+        #     showlegend=False,
+        # )
+        
+        # # x축 및 y축 레이블
+        # fig.update_xaxes(title_text='지연 (Lag)', row=1, col=1)
+        # fig.update_xaxes(title_text='지연 (Lag)', row=1, col=2)
+        # fig.update_yaxes(title_text='상관도 (Correlation)', row=1, col=1)
+        # fig.update_yaxes(title_text='상관도 (Correlation)', row=1, col=2)
+        
+        # return fig
     
     def plot_fft(self, 
                  fft_result: dict):
