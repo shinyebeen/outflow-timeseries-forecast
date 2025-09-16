@@ -118,7 +118,7 @@ if st.session_state.series is not None:
                     st.warning("시계열 데이터가 정상성을 만족하지 않습니다")
                     
                 # 설명 추가
-                with st.expander("정상성 판단 기준 설명", expanded=False):
+                with st.expander("정상성 판단 기준 설명", expanded=True):
                     st.markdown("""
                     - **ADF 통계량**이 임계값보다 **작을수록** 정상성 가능성이 높습니다
                     - **p-값**이 0.05보다 **작으면** 정상성을 만족합니다
@@ -168,7 +168,7 @@ if st.session_state.series is not None:
                 )
                 
                 # 임계값 카드
-                # st.markdown("### 📊 임계값 (Critical Values)")
+                st.markdown("### 📊 임계값 (Critical Values)")
                 
                 # 임계값 표시를 위한 3개 컬럼
                 crit_col1, crit_col2, crit_col3 = st.columns(3)
@@ -272,6 +272,22 @@ if st.session_state.series is not None:
         
     with tab4:     
         # 주파수 탐지
+        ## 📊 푸리에 변환 해석 가이드
+        
+        with st.expander("시계열 분해 그래프 해석 방법", expanded=False):
+            st.markdown("""그래프(FFT): 시간 데이터가 어떤 주기(주파수) 성분으로 이루어져 있는지 보여줍니다. 그래프의 봉우리가 클수록 해당 주파수가 데이터에 강하게 포함되어 있음을 의미합니다.
+
+                주요 주파수 성분 표: 데이터에서 가장 뚜렷하게 나타나는 상위 3개의 주파수를 표시합니다.
+
+                Frequency (Hz): 1초당 반복 횟수를 의미합니다.
+
+                Period (hours): 해당 주파수가 실제 시간에서 몇 시간 주기로 반복되는지를 나타냅니다.
+
+                👉 즉, 값이 클수록 데이터에서 반복적으로 나타나는 주요 패턴을 설명한다고 볼 수 있습니다. 
+        """)
+
+        
+
         fft_result = analyze_fft()
         if fft_result is None:
             st.error("고속푸리에변환 중 오류가 발생했습니다.")
