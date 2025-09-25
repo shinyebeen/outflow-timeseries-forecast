@@ -213,10 +213,10 @@ class LSTMModel(TimeSeriesModel):
             traceback.print_exc()
             # 빈 3D 배열 반환 - 안전한 기본값 사용
             try:
-                n_features = 1 if data.ndim == 1 else data.shape[1]
+                n_features = 1 if self.data.ndim == 1 else self.data.shape[1]
             except:
                 n_features = 1
-            return np.array([]).reshape(0, time_step, n_features), np.array([]).reshape(0, forecast_horizon, n_features)
+            return np.array([]).reshape(0, time_step, n_features), np.array([]).reshape(0, self.forecast_horizon, n_features)
 
     def _build_model(self, trial, input_shape):
         """모델 구축"""
@@ -480,6 +480,7 @@ class LSTMModel(TimeSeriesModel):
             import traceback
             traceback.print_exc()
             return None
+
 
     def _get_optimization_history(self, study):
         """최적화 과정 히스토리 반환"""

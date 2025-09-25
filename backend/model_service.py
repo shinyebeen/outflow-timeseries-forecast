@@ -54,15 +54,15 @@ def run_complete_optimization(selected_models, strategy='smart', trials_per_mode
         if st.session_state.model_results is None:
             st.session_state.model_results = {}
         
-        if strategy == 'quick':
+        if strategy.startswith('**quick'):
             return _quick_strategy(selected_models, verbose_level)
-        elif strategy == 'balanced':
+        elif strategy.startswith('**balanced'):
             return _balanced_strategy(selected_models, verbose_level)
-        elif strategy == 'thorough':
+        elif strategy.startswith('**thorough'):
             return _thorough_strategy(selected_models, verbose_level)
-        elif strategy == 'smart':
+        elif strategy.startswith('**smart'):
             return _smart_strategy(selected_models, verbose_level)
-        elif strategy == 'custom':
+        elif strategy.startswith('**custom'):
             return _custom_strategy(trials_per_model, selected_models, verbose_level)
         else:
             raise ValueError("strategy는 'quick', 'balanced', 'thorough', 'smart', 'custom' 중 하나여야 합니다.")
@@ -412,7 +412,9 @@ def _save_complete_results():
                          key=lambda x: successful_models[x]['rmse'])
     best_result = successful_models[best_model_name] # rmse가 가장 작은 모델 {name : result} 저장
     
-    print(best_result)
+    # print(best_result)
+    
+    print(st.session_state.model_results)
 
     # 최고 성능 모델의 설정만 저장
     best_config = {

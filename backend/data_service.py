@@ -119,6 +119,19 @@ def prepare_train_test_data(test_size=None):
         return True
     return False
 
+def prepare_train_test_data_last_week():
+    """
+    마지막 1주일치를 테스트 데이터로 사용하여 훈련/테스트 데이터 분할 준비
+    """
+    if st.session_state.series is not None:
+        records_per_hour = st.session_state.records_per_hour if hasattr(st.session_state, 'records_per_hour') else 1.0
+        st.session_state.train, st.session_state.test = cached_train_test_split_last_week(
+            st.session_state.series, 
+            records_per_hour
+        )
+        return True
+    return False
+
 def analyze_outliers():
     if st.session_state.series is not None:
         result = cached_analyze_outliers(st.session_state.series)

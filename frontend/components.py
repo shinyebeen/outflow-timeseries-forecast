@@ -159,14 +159,15 @@ def render_model_selector(model_factory):
         # 베이지안 최적화(optuna) 반복 횟수 
         strategy = st.radio(
             "베이지안 최적화 반복 횟수",
-            ["quick", "balanced", "thorough", "smart", 'custom']
+            ["**quick** : 10회 반복 (빠른 테스트용)", "**balanced** : 20회 반복 (균형 잡힌 설정)", "**thorough** : 50회 반복 (철저한 설정)", "**smart** : 단계적 최적화 (빠른 탐색 후 세밀한 조정)", '**custom** : 사용자가 직접 설정']
         )
-        
+
         col1, _ = st.columns([1, 9])
 
         trial = None
         with col1:
-            if strategy == 'custom':
+            
+            if strategy.startswith('**custom'):
                 trial = st.number_input(
                     "최적화 반복 횟수",
                     min_value=1,

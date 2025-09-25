@@ -558,7 +558,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         # 테스트 데이터
         fig.add_trace(
             go.Scatter(
-                x=test.index[-data_len*10:],
+                # x=test.index[-data_len*10:],
+                x=st.session_state.test.index[-data_len*10:],
                 y=test.values[-data_len*10:],
                 mode='lines',
                 name='Actual Test Data',
@@ -572,7 +573,7 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         for i, (model_name, forecast) in enumerate(forecasts.items()):
             fig.add_trace(
                 go.Scatter(
-                    x=test.index[-data_len*10:],
+                    x=st.session_state.test.index[-data_len*10:],
                     y=forecast[-data_len*10:],
                     mode='lines',
                     name=f'{model_name} Forecast',

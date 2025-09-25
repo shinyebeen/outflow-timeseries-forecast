@@ -298,8 +298,7 @@ class DataProcessor(metaclass = Singleton):
         test = series[split_idx:]
         
         return train, test
-    
-            
+       
 # @st.cache_data(ttl=3600)
 @st.cache_data(ttl=1800, max_entries=3)  # 30분 TTL, 최대 3개 캐시
 def cached_preprocess_data(df, target_col):
