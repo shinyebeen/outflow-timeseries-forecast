@@ -70,3 +70,29 @@ if st.session_state.file_data is not None:
                         mime="application/json",
                         data=st.session_state.file_data,
                         help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)
+    
+    with open("best_lstm_model.h5", "rb") as f:
+        st.download_button(
+            label="모델 다운로드",
+            data=f,
+            file_name="best_lstm_model.h5",
+            mime="application/octet-stream"
+        )
+
+    # scaler_X 다운로드
+    with open("scaler_X.pkl", "rb") as f:
+        st.download_button(
+            label="📥 Scaler_X 다운로드",
+            data=f,
+            file_name="scaler_X.pkl",
+            mime="application/octet-stream"
+        )
+
+    # scaler_y 다운로드
+    with open("scaler_y.pkl", "rb") as f:
+        st.download_button(
+            label="📥 Scaler_y 다운로드",
+            data=f,
+            file_name="scaler_y.pkl",
+            mime="application/octet-stream"
+        )
