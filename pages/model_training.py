@@ -82,7 +82,7 @@ if st.session_state.file_data is not None:
     # scaler_X 다운로드
     with open("scaler_X.pkl", "rb") as f:
         st.download_button(
-            label="📥 Scaler_X 다운로드",
+            label="Scaler_X 다운로드",
             data=f,
             file_name="scaler_X.pkl",
             mime="application/octet-stream"
@@ -91,7 +91,7 @@ if st.session_state.file_data is not None:
     # scaler_y 다운로드
     with open("scaler_y.pkl", "rb") as f:
         st.download_button(
-            label="📥 Scaler_y 다운로드",
+            label="Scaler_y 다운로드",
             data=f,
             file_name="scaler_y.pkl",
             mime="application/octet-stream"
