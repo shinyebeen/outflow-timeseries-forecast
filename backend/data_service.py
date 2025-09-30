@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
+import holidays
 
 from frontend.session_state import reset_data_results
 from utils.data_processor import (cached_preprocess_data,
@@ -46,6 +48,19 @@ def fix_24_hour(time_str):
         return new_date.strftime('%Y/%m/%d') + (' 00:00:00' if has_seconds else ' 00:00')
     return s
 
+def make_time_feature(df):
+    kr_holidays = holidays.KR()
+    df = df.copy()
+    df['logTime'] = pd.to_datetime(df['logTime'])
+    df['month'] = df['logTime'].dt.month
+    df['weekday'] = df['logTime'].dt.weekday
+    df['hour'] = df['logTime'].dt.hour
+    df['is_holiday'] = df['logTime'].dt.normalize().isin(kr_holidays).astype(int)
+    df['is_weekend'] = df['weekday'].isin([5, 6]).astype(int)
+    df['month'] = df['logTime'].dt.month
+
+    return df
+
 @st.cache_data(ttl=3600)
 def load_data(file_path):
     if file_path.name.endswith('.csv'):
@@ -67,6 +82,26 @@ def load_data(file_path):
                 break
             except ValueError:
                 continue
+
+    # 결측치 보간
+    df.set_index('logTime', inplace=True)
+    numeric_columns = df.select_dtypes(include=np.number).columns.tolist()
+    
+    for col in numeric_columns:
+        # dropna() 제거하고 바로 interpolate 수행
+        df[col] = df[col].interpolate(method='time', limit_direction='both')
+        # 남은 결측치(시작과 끝)는 앞뒤 값으로 채우기
+        df[col] = df[col].fillna(method='ffill').fillna(method='bfill')
+
+    df.reset_index(inplace=True)
+
+    # 시간 특성들
+    time_features = [col for col in df.columns
+                         if col in ['weekday', 'hour', 'is_holiday', 'is_weekend', 'month']]
+    
+    if len(time_features) < 5:
+        df = make_time_feature(df)
+
 
     if 'logTime' not in df.columns:
         raise ValueError("날짜 형식의 컬럼을 찾을 수 없습니다.")
@@ -111,23 +146,10 @@ def prepare_train_test_data(test_size=None):
     if test_size is None:
         test_size = st.session_state.test_size if 'test_size' in st.session_state else 0.2  # Default to 20% if undefined
         
-    if st.session_state.series is not None:
+    if st.session_state.df is not None:
         st.session_state.train, st.session_state.test = cached_train_test_split(
-            st.session_state.series, 
+            st.session_state.df, 
             test_size
-        )
-        return True
-    return False
-
-def prepare_train_test_data_last_week():
-    """
-    마지막 1주일치를 테스트 데이터로 사용하여 훈련/테스트 데이터 분할 준비
-    """
-    if st.session_state.series is not None:
-        records_per_hour = st.session_state.records_per_hour if hasattr(st.session_state, 'records_per_hour') else 1.0
-        st.session_state.train, st.session_state.test = cached_train_test_split_last_week(
-            st.session_state.series, 
-            records_per_hour
         )
         return True
     return False
@@ -370,18 +392,19 @@ def prepare_differenced_train_test_data(test_size=None):
     if test_size is None:
         test_size = st.session_state.test_size
         
-    if st.session_state.differenced_series is not None:
-        st.session_state.diff_train, st.session_state.diff_test = cached_train_test_split(
-            st.session_state.differenced_series, 
+    # if st.session_state.differenced_series is not None:
+    #     st.session_state.diff_train, st.session_state.diff_test = cached_train_test_split(
+    #         st.session_state.differenced_series, 
+    #         test_size
+    #     )
+        
+        
+    # return False
+    # 원본 데이터도 함께 분할 (시각화용)
+    if st.session_state.df is not None:
+        st.session_state.train, st.session_state.test = cached_train_test_split(
+            st.session_state.df,
             test_size
         )
         
-        # 원본 데이터도 함께 분할 (시각화용)
-        if st.session_state.series is not None:
-            st.session_state.train, st.session_state.test = cached_train_test_split(
-                st.session_state.series,
-                test_size
-            )
-            
-        return True
-    return False
+    return True
