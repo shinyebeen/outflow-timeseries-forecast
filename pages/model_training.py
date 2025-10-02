@@ -40,7 +40,7 @@ results = None
 
 col1, col2 = st.columns([6, 2])
 with col1:
-    if st.button("모델 학습 및 예측 시작", width=True, type="primary"):
+    if st.button("모델 학습 및 예측 시작", use_container_width=True, type="primary"):
         if not selected_models:
             st.warning("최소한 하나의 모델을 선택해주세요.")
         else:
@@ -60,7 +60,7 @@ with col1:
                 st.session_state.file_data = results
 
 with col2:
-    if st.button("결과 초기화", width=True):
+    if st.button("결과 초기화", use_container_width=True):
         reset_model_results()
         st.rerun()
 
