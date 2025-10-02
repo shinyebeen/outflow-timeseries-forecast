@@ -15,28 +15,6 @@ from utils.data_processor import (cached_preprocess_data,
                                  cached_recommend_differencing,
                                  cached_perform_differencing,
                                  cached_train_test_split)
-# @st.cache_data(ttl=3600)
-# def load_data(file_path):
-#     if file_path.name.endswith('.csv'):
-#         df = pd.read_csv(file_path)
-#     elif file_path.name.endswith('.xlsx'):
-#         df = pd.read_excel(file_path)
-
-#     # 날짜 형식 컬럼 확인 후 에러 처리
-#     for i in df.columns:
-#         if pd.api.types.is_datetime64_any_dtype(df[i]):
-#             df.rename(columns={i: 'logTime'}, inplace=True)
-#             break
-#         if pd.api.types.is_string_dtype(df[i]):
-#             try:
-#                 df[i] = pd.to_datetime(df[i])
-#                 df.rename(columns={i: 'logTime'}, inplace=True)
-#                 break
-#             except ValueError:
-#                 continue
-
-#     reset_data_results()
-#     st.session_state.df = df
 
 def fix_24_hour(time_str):
     s = str(time_str).strip()

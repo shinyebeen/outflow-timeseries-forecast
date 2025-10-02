@@ -30,11 +30,6 @@ def render_data_load_section():
     if file is not None:
         try:
             load_data(file)
-            # 원본 데이터 저장 (첫 업로드 시에만, 데이터가 성공적으로 로드된 경우에만)
-            if (st.session_state.original_df is None and 
-                st.session_state.df is not None and 
-                not st.session_state.df.empty):
-                st.session_state.original_df = st.session_state.df.copy()
         
         except ValueError as e:
             st.session_state.df = None

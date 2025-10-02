@@ -55,19 +55,18 @@ class LSTMModel(TimeSeriesModel):
         """
         super().__init__(name)
         self.model_params = {}
-        self.history = None 
         self.scaler_X = None
         self.scaler_y = None
-        self.time_step = st.session_state.time_step
-        self.forecast_horizon = st.session_state.forecast_horizon
 
         self.df = st.session_state.df.copy()
         self.target = st.session_state.target
+        self.forecast_horizon = st.session_state.forecast_horizon
+        self.time_step = st.session_state.time_step
         
         # 베이즈 최적화를 위한 탐색 공간 정의
         self.search_space = {
             # 시간 스텝 범위
-            'time_step_min': 168,
+            'time_step_min': 1, # 1시간
             'time_step_max' : 168, # 1주
 
             # 모델 아키텍처
@@ -89,7 +88,8 @@ class LSTMModel(TimeSeriesModel):
             'epochs_min': 20,
             'epochs_max': 100
         }
-                # 특성 조합 (기존 방식 + 자동 선택)
+        
+        # 특성 조합 (기존 방식 + 자동 선택)
         self._prepare_feature_pool()
 
     def _prepare_feature_pool(self):
@@ -107,13 +107,18 @@ class LSTMModel(TimeSeriesModel):
         # 소블록 특성들
         self.block_features = [col for col in all_features
                               if '소블록' in col or '블록' in col]
-
+        
+        # 스마트미터 특성들
+        self.smart_features = [col for col in all_features
+                              if '구간사용량' in col or '구간' in col]
+        
         # 전체 특성 풀
         self.feature_pool = {
             'target': [self.target],
             'flow_features': self.flow_features,
             'time_features': self.time_features,
-            'block_features': self.block_features
+            'block_features': self.block_features,
+            'smart_features': self.smart_features
         }
 
     def _suggest_features(self, trial):
@@ -149,8 +154,50 @@ class LSTMModel(TimeSeriesModel):
                 selected_blocks = self.block_features[:num_blocks]
                 selected_features.extend(selected_blocks)
 
+        # 스마트미터 특성 선택
+        if self.smart_features:
+            use_smart = trial.suggest_categorical('use_smart_features', [True, False])
+            if use_smart:
+                for feature in self.smart_features:
+                    if trial.suggest_categorical(f'use_{feature}', [True, False]):
+                        selected_features.append(feature)
+
         return list(set(selected_features))  # 중복 제거
 
+    # def _prepare_data(self, features, time_step):
+    #     """데이터 준비 및 스케일링"""
+    #     try:
+    #         # 사용 가능한 특성만 선택
+    #         available_features = [f for f in features if f in self.df.columns]
+    #         if not available_features or self.target not in available_features:
+    #             return None
+            
+    #         # 스케일러 초기화
+    #         scaler_X = MinMaxScaler(feature_range=(0, 1))
+    #         scaler_y = MinMaxScaler(feature_range=(0, 1))
+
+    #         # 특성과 타겟 분리
+    #         X_scaled = scaler_X.fit_transform(self.df[available_features])
+    #         y_scaled = scaler_y.fit_transform(self.df[[self.target]])
+
+    #         # 시계열 데이터셋 생성
+    #         X, y = self._create_sequences(X_scaled, y_scaled, time_step)
+
+    #         if len(X) < 20:  # 최소 데이터 요구사항
+    #             return None
+
+    #         # 데이터 분할 (80:20)
+    #         test_size = int(len(X) * st.session_state.test_size)
+    #         X_train, X_test = X[:-test_size], X[-test_size:]
+    #         y_train, y_test = y[:-test_size], y[-test_size:]
+
+    #         return X_train, X_test, y_train, y_test, scaler_X, scaler_y
+
+    #     except Exception as e:
+    #         print(f"데이터 준비 중 오류: {e}")
+    #         import traceback
+    #         traceback.print_exc()
+    #         return None
     def _prepare_data(self, features, time_step):
         """데이터 준비 및 스케일링"""
         try:
@@ -164,19 +211,22 @@ class LSTMModel(TimeSeriesModel):
             scaler_y = MinMaxScaler(feature_range=(0, 1))
 
             # 특성과 타겟 분리
-            X_scaled = scaler_X.fit_transform(self.df[available_features])
-            y_scaled = scaler_y.fit_transform(self.df[[self.target]])
+            X_scaled = scaler_X.fit_transform(st.session_state.train[available_features])
+            X_test_scaled = scaler_X.transform(st.session_state.test[available_features])
+            y_scaled = scaler_y.fit_transform(st.session_state.train[[self.target]])
+            y_test_scaled = scaler_y.transform(st.session_state.test[[self.target]])
 
             # 시계열 데이터셋 생성
-            X, y = self._create_sequences(X_scaled, y_scaled, time_step)
+            X_train, y_train = self._create_sequences(X_scaled, y_scaled, time_step)
+            X_test, y_test = self._create_sequences(X_test_scaled, y_test_scaled, time_step)
 
-            if len(X) < 20:  # 최소 데이터 요구사항
-                return None
+            # if len(X) < 20:  # 최소 데이터 요구사항
+            #     return None
 
-            # 데이터 분할 (80:20)
-            train_size = int(len(X) * 0.8)
-            X_train, X_test = X[:train_size], X[train_size:]
-            y_train, y_test = y[:train_size], y[train_size:]
+            # # 데이터 분할 (80:20)
+            # test_size = int(len(X) * st.session_state.test_size)
+            # X_train, X_test = X[:-test_size], X[-test_size:]
+            # y_train, y_test = y[:-test_size], y[-test_size:]
 
             return X_train, X_test, y_train, y_test, scaler_X, scaler_y
 
@@ -337,6 +387,9 @@ class LSTMModel(TimeSeriesModel):
             y_pred = model.predict(X_test, verbose=0)
             y_pred_rescaled = scaler_y.inverse_transform(y_pred)
             y_test_rescaled = scaler_y.inverse_transform(y_test)
+            
+            # 음수 예측값을 0으로 변환
+            y_pred_rescaled = np.where(y_pred_rescaled < 0, 0, y_pred_rescaled)
 
             rmse = np.sqrt(mean_squared_error(y_test_rescaled, y_pred_rescaled))
 
@@ -452,6 +505,9 @@ class LSTMModel(TimeSeriesModel):
             y_pred_rescaled = scaler_y.inverse_transform(y_pred)
             y_test_rescaled = scaler_y.inverse_transform(y_test)
 
+            # 음수 예측값을 0으로 변환
+            y_pred_rescaled = np.where(y_pred_rescaled < 0, 0, y_pred_rescaled)
+            
             rmse = np.sqrt(mean_squared_error(y_test_rescaled, y_pred_rescaled))
             mae = mean_absolute_error(y_test_rescaled, y_pred_rescaled)
 

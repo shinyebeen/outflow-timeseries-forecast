@@ -112,23 +112,11 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
     """
     # 매개변수가 없으면 세션 상태 사용
     if train_data is None:
-        if st.session_state.use_differencing and st.session_state.diff_train is not None:
-            # 차분 모드이고 diff_train이 있는 경우 diff_train 사용
-            st.info("차분 데이터 모드입니다. 원본 데이터로 시각화합니다.")
-            train_data = st.session_state.train  # 원본 데이터로 시각화
-        else:
-            # 일반 모드
-            train_data = st.session_state.train
+        train_data = st.session_state.train
     
     if test_data is None:
-        if st.session_state.use_differencing and st.session_state.diff_test is not None:
-            # 차분 모드이고 diff_test가 있는 경우 diff_test 사용
-            test_data = st.session_state.test  # 원본 데이터로 시각화
-        else:
-            # 일반 모드
-            test_data = st.session_state.test
+        test_data = st.session_state.test
     
-    # forecasts = forecasts if forecasts is not None else st.session_state.forecasts
     forecasts = forecasts if forecasts is not None else st.session_state.model_results
     
     # 데이터 유효성 검사
@@ -139,25 +127,6 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
         st.write("### 세션 상태 확인:")
         st.write(f"train: {'존재함' if hasattr(st.session_state, 'train') and st.session_state.train is not None else '없음'}")
         st.write(f"test: {'존재함' if hasattr(st.session_state, 'test') and st.session_state.test is not None else '없음'}")
-        # st.write(f"diff_train: {'존재함' if hasattr(st.session_state, 'diff_train') and st.session_state.diff_train is not None else '없음'}")
-        # st.write(f"diff_test: {'존재함' if hasattr(st.session_state, 'diff_test') and st.session_state.diff_test is not None else '없음'}")
-        # st.write(f"use_differencing: {st.session_state.use_differencing if hasattr(st.session_state, 'use_differencing') else '설정 안됨'}")
-        
-        # # 차분 모드이고 원본 데이터가 없는 경우, 차분 데이터 사용 시도
-        # if st.session_state.use_differencing:
-        #     if train_data is None and hasattr(st.session_state, 'diff_train') and st.session_state.diff_train is not None:
-        #         st.warning("원본 train 데이터가 없어 차분 데이터를 사용합니다.")
-        #         train_data = st.session_state.diff_train
-            
-        #     if test_data is None and hasattr(st.session_state, 'diff_test') and st.session_state.diff_test is not None:
-        #         st.warning("원본 test 데이터가 없어 차분 데이터를 사용합니다.")
-        #         test_data = st.session_state.diff_test
-            
-        #     # 여전히 데이터가 없는 경우
-        #     if train_data is None or test_data is None:
-        #         return None
-        # else:
-        #     return None
     
     if not forecasts:
         st.error("시각화할 예측 결과가 없습니다.")
@@ -166,7 +135,8 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
     # 유효한 예측 결과만 필터링
     valid_forecasts = {}
     for model_name, forecast in forecasts.items():
-
+        
+        # 각 모델별 best_model 결과 확인
         if forecast['result']['best_model'] is not None:
             results = forecast['result']['best_model']
 
@@ -180,36 +150,17 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
                     continue
             else:
                 valid_forecasts[model_name] = results['test_predictions']
-    # for model_name, forecast in forecasts.items():
-
-    #     if forecast['result']['best_model'] is not None:
-    #         results = forecast['result']['best_model']
-
-    #         if len(results['test_actual']) != len(results['test_predictions']):
-    #             min_len = min(len(results['test_predictions']), len(test_data))
-    #             if min_len > 0:
-    #                 st.warning(f"{model_name} 모델의 예측 길이({len(results['test_predictions'])})가 테스트 데이터 길이({len(results['test_actual'])})와 다릅니다. 최소 길이({min_len})로 조정합니다.")
-    #                 valid_forecasts[model_name] = results['test_predictions'][:min_len]
-    #             else:
-    #                 st.warning(f"{model_name} 모델의 예측 결과를 시각화에서 제외합니다.")
-    #                 continue
-    #         else:
-    #             valid_forecasts[model_name] = results['test_predictions']
+                
     if not valid_forecasts:
         st.error("유효한 예측 결과가 없어 시각화할 수 없습니다.")
         return None
     
     try:
         comparison_fig = cached_plot_forecast_comparison(
-            # train_data, 
-            results['test_actual'], 
+            results['test_actual'], # 어차피 forecast_horizon 길이가 같음 
             valid_forecasts
         )
-        # comparison_fig = cached_plot_forecast_comparison(
-        #     train_data, 
-        #     results['test_actual'], 
-        #     valid_forecasts
-        # )
+
         return comparison_fig
     except Exception as e:
         st.error(f"예측 비교 시각화 중 오류 발생: {str(e)}")

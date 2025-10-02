@@ -278,7 +278,7 @@ class DataProcessor(metaclass = Singleton):
             return None
         
     def train_test_split(self, 
-                         series: pd.Series, 
+                         df: pd.DataFrame, 
                          test_size: float = app_config.DEFAULT_TEST_SIZE) -> tuple[pd.Series, pd.Series]:
         """
         시계열 데이터를 훈련 세트와 테스트 세트로 분할합니다.
@@ -291,11 +291,11 @@ class DataProcessor(metaclass = Singleton):
             (훈련 데이터, 테스트 데이터) 튜플
         """
         # 분할 지점 계산
-        split_idx = int(len(series) * (1 - test_size))
+        split_idx = int(len(df) * (1 - test_size))
         
         # 시간 순서대로 분할
-        train = series[:split_idx]
-        test = series[split_idx:]
+        train = df.iloc[:split_idx, :]
+        test = df.iloc[split_idx:, :]
         
         return train, test
        
@@ -372,7 +372,7 @@ def cached_recommend_differencing(series, acf_values=None, pacf_values=None):
 
 # @st.cache_data(ttl=3600)
 @st.cache_data(ttl=1800, max_entries=3)  # 30분 TTL, 최대 3개 캐시
-def cached_train_test_split(series, test_size):
+def cached_train_test_split(df, test_size):
     """훈련/테스트 분할 캐싱"""
     processor = DataProcessor()
-    return processor.train_test_split(series, test_size)
+    return processor.train_test_split(df, test_size)

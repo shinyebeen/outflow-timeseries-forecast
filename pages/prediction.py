@@ -37,28 +37,5 @@ if hasattr(st.session_state, 'model_results') and st.session_state.model_results
     metrics_df = pd.DataFrame(metrics_data)
     st.dataframe(metrics_df.T, use_container_width=True)  # 전치하여 모델별로 행 표시
 
-            #     # 모델 설명
-            #     st.markdown("### 모델 해석")
-            #     if "LSTM" in st.session_state.best_model:
-            #         st.markdown("""
-            #         **LSTM(Long Short-Term Memory) 모델**은 순환 신경망(RNN)의 일종으로, 장기 의존성 문제를 해결하기 위한 특수한 구조를 가진 딥러닝 모델입니다.
-            #         - 복잡한 시계열 패턴 학습 가능
-            #         - 긴 시퀀스 처리에 효과적
-            #         - 비선형 관계 모델링에 강점
-            #         """)
-            #    elif "XGBoost" in st.session_state.best_model:
-            #         st.markdown("""
-            #         **LSTM(Long Short-Term Memory) 모델**은 순환 신경망(RNN)의 일종으로, 장기 의존성 문제를 해결하기 위한 특수한 구조를 가진 딥러닝 모델입니다.
-            #         - 복잡한 시계열 패턴 학습 가능
-            #         - 긴 시퀀스 처리에 효과적
-            #         - 비선형 관계 모델링에 강점
-            #         """)
-            #     # 모델 성능 메트릭 설명
-            #     st.markdown("### 성능 지표 해석")
-            #     st.markdown("""
-            #     **주요 성능 지표:**
-            #     - **RMSE (Root Mean Squared Error)**: 예측 오차의 제곱평균의 제곱근. 낮을수록 좋음.
-            #     - **MAE (Mean Absolute Error)**: 예측 오차의 절대값 평균. 낮을수록 좋음.
-            #     """)
 else:
     st.info("모델 학습을 진행하여 예측 결과를 확인하세요.")

@@ -58,41 +58,41 @@ if st.session_state.series is not None:
                 else:
                     st.text(f"\n💡 추천: 표준 기준으로 {total_standard}개 정도면 적당합니다.")
                 
-                # 이상치가 있을 때만 제거 옵션 표시
-                if total_standard > 0:
-                    # 이상치 제거 기준 선택
-                    st.markdown("#### 이상치 제거 기준 선택")
-                    options = ['standard', 'conservative'] if too_many_outliers else ['standard']
-                    selected_criterion = st.radio("제거 기준", options, horizontal=True, label_visibility='collapsed')
+                # # 이상치가 있을 때만 제거 옵션 표시
+                # if total_standard > 0:
+                #     # 이상치 제거 기준 선택
+                #     st.markdown("#### 이상치 제거 기준 선택")
+                #     options = ['standard', 'conservative'] if too_many_outliers else ['standard']
+                #     selected_criterion = st.radio("제거 기준", options, horizontal=True, label_visibility='collapsed')
 
-                    if st.button('이상치 제거'):
-                        try:
-                            # selected_criterion을 함수에 전달
-                            cleaned_series = delete_outliers(selected_criterion)
+                #     if st.button('이상치 제거'):
+                #         try:
+                #             # selected_criterion을 함수에 전달
+                #             cleaned_series = delete_outliers(selected_criterion)
                             
-                            if cleaned_series is not None and len(cleaned_series) > 0:
-                                st.success(f'이상치 제거 성공!')
+                #             if cleaned_series is not None and len(cleaned_series) > 0:
+                #                 st.success(f'이상치 제거 성공!')
 
-                                # if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
-                                #     reset_data_results()
-                                #     reset_model_results()
-                                #     st.session_state.df = cleaned_df
-                                #     st.rerun()
-                                if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
-                                    reset_data_results()
-                                    reset_model_results()
-                                    st.session_state.series = cleaned_series  # 시계열 데이터 직접 업데이트
-                                    st.session_state.df[st.session_state.target] = cleaned_series  # target_column은 실제 컬럼명으로 변경 필요
-                                    st.experimental_rerun()  # 페이지 강제 새로고침
+                #                 # if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
+                #                 #     reset_data_results()
+                #                 #     reset_model_results()
+                #                 #     st.session_state.df = cleaned_df
+                #                 #     st.rerun()
+                #                 if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
+                #                     reset_data_results()
+                #                     reset_model_results()
+                #                     st.session_state.series = cleaned_series  # 시계열 데이터 직접 업데이트
+                #                     st.session_state.df[st.session_state.target] = cleaned_series  # target_column은 실제 컬럼명으로 변경 필요
+                #                     st.experimental_rerun()  # 페이지 강제 새로고침
 
-                            elif len(cleaned_series) == 0:
-                                st.info('제거할 이상치가 없습니다.')
-                            else:
-                                st.error('이상치 제거에 실패했습니다.')
-                        except Exception as e:
-                            st.error(f'이상치 제거 중 오류 발생: {str(e)}')
-                else:
-                    st.info("제거할 이상치가 없습니다.")
+                #             elif len(cleaned_series) == 0:
+                #                 st.info('제거할 이상치가 없습니다.')
+                #             else:
+                #                 st.error('이상치 제거에 실패했습니다.')
+                #         except Exception as e:
+                #             st.error(f'이상치 제거 중 오류 발생: {str(e)}')
+                # else:
+                #     st.info("제거할 이상치가 없습니다.")
             else:
                 st.warning("이상치 분석을 먼저 수행해주세요.")
 

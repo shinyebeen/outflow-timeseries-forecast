@@ -553,14 +553,14 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         #         line=dict(color='blue', width=2)
         #     )
         # )
-        data_len = 168 if len(test) > 168 else len(test)
+        data_len = 1680 if len(test) > 1680 else len(test)
         
         # 테스트 데이터
         fig.add_trace(
             go.Scatter(
                 # x=test.index[-data_len*10:],
-                x=st.session_state.test.index[-data_len*10:],
-                y=test.values[-data_len*10:],
+                x=st.session_state.test['logTime'][-data_len:],
+                y=test.values[-data_len:],
                 mode='lines',
                 name='Actual Test Data',
                 line=dict(color='green', width=2)
@@ -573,8 +573,8 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         for i, (model_name, forecast) in enumerate(forecasts.items()):
             fig.add_trace(
                 go.Scatter(
-                    x=st.session_state.test.index[-data_len*10:],
-                    y=forecast[-data_len*10:],
+                    x=st.session_state.test['logTime'][-data_len:],
+                    y=forecast[-data_len:],
                     mode='lines',
                     name=f'{model_name} Forecast',
                     line=dict(color=colors[i % len(colors)], width=2, dash='dash')

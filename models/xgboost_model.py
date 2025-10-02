@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 import optuna
+import pickle
 
 from sklearn.preprocessing import MinMaxScaler
 from models.base_model import TimeSeriesModel 
@@ -24,14 +25,13 @@ class XGBoostModel(TimeSeriesModel):
         """
         super().__init__(name)
         self.model_params = {}
-        self.history= None
-        self.scaler = None
-        self.forecast_horizon = None 
-        
-        self.X_train = None
-        self.X_test = None 
-        self.y_train = None
-        self.y_test = None
+        self.scaler_X = None
+        self.scaler_y = None
+
+        self.df = st.session_state.df.copy()
+        self.target = st.session_state.target
+        self.forecast_horizon = st.session_state.forecast_horizon
+        self.time_step = st.session_state.time_step
         
         # 베이즈 최적화를 위한 탐색 공간 정의
         self.search_space = {
@@ -52,49 +52,167 @@ class XGBoostModel(TimeSeriesModel):
             'use_seasonal_features': [True, False],  # 계절성 특성 사용 여부
             'use_interaction_features': [True, False], # 상호작용 특성 사용 여부
         }
+        # 데이터 준비
+        self._prepare_feature_pool()
 
-    def _create_sequences(self, data):
-        """
-        Multi-output 시계열 시퀀스 데이터 생성 (step 추가)
-        """
-        data_np = data.values if hasattr(data, "values") else np.array(data)
-        if data_np.ndim == 1:
-            data_np = data_np.reshape(-1, 1)
+    def _prepare_feature_pool(self):
+        """특성 풀 준비 - 실제 데이터에 맞게"""
+        all_features = list(self.df.columns)
+        all_features.remove(self.target)
 
-        X_seq = []
-        y_seq = []
-        
+        # 유량 특성들 (타겟 제외)
+        self.flow_features = [col for col in all_features if '유량' in col and col != self.target]
+
+        # 시간 특성들 (실제 데이터에 있는 것들만)
+        self.time_features = [col for col in all_features if col in ['weekday', 'hour', 'is_holiday', 'is_weekend', 'month']]
+
+        # 소블록 특성들
+        self.block_features = [col for col in all_features if '소블록' in col]
+
+        # 스마트미터 특성들
+        self.smart_features = [col for col in all_features
+                              if '구간사용량' in col or '구간' in col]
+
+        print(f"총 특성 개수: 유량({len(self.flow_features)}) + 시간({len(self.time_features)}) + 소블록({len(self.block_features)})")
+        print()
+
+    def _suggest_features(self, trial):
+        """Optuna가 특성 조합을 자동으로 제안"""
+        selected_features = []
+
+        # 유량 특성 선택
+        if self.flow_features:
+            use_flow = trial.suggest_categorical('use_flow_features', [True, False])
+            if use_flow:
+                selected_features.extend(self.flow_features)
+
+        # 시간 특성 선택
+        if self.time_features:
+            for feature in self.time_features:
+                use_this = trial.suggest_categorical(f'use_{feature}', [True, False])
+                if use_this:
+                    selected_features.append(feature)
+
+        # 소블록 특성 선택
+        if self.block_features:
+            use_blocks = trial.suggest_categorical('use_block_features', [True, False])
+            if use_blocks:
+                num_blocks = trial.suggest_int('num_block_features', 1,
+                                             min(len(self.block_features), 3))
+                selected_blocks = self.block_features[:num_blocks]
+                selected_features.extend(selected_blocks)
+
+        # 스마트미터 특성 선택
+        if self.smart_features:
+            use_smart = trial.suggest_categorical('use_smart_features', [True, False])
+            if use_smart:
+                for feature in self.smart_features:
+                    if trial.suggest_categorical(f'use_{feature}', [True, False]):
+                        selected_features.append(feature)
+
+        return list(set(selected_features))  # 중복 제거
+
+    def _create_advanced_features(self, df, base_features, trial):
+        """고급 특성 엔지니어링 (Optuna가 파라미터 제안)"""
+        enhanced_df = df.copy()
+
+        # 지연 특성 생성
+        max_lag = trial.suggest_int('max_lag_hours',
+                                   self.search_space['max_lag_hours'][0],
+                                   self.search_space['max_lag_hours'][1])
+
+        # 타겟 변수의 지연 특성
+        # for lag in [1, 6, 12, 24]:
+        for lag in [10, 30, 60, 1440]:
+            if lag <= max_lag:
+                enhanced_df[f'target_lag_{lag}'] = enhanced_df[self.target].shift(lag)
+
+        # 선택된 특성들의 지연 특성 (일부만)
+        for feature in base_features[:2]:  # 처음 2개만
+            if feature in enhanced_df.columns and '유량' in feature:
+                enhanced_df[f'{feature}_lag_1'] = enhanced_df[feature].shift(1)
+
+        # 롤링 통계 특성
+        rolling_window = trial.suggest_int('rolling_window_size',
+                                          self.search_space['rolling_window_size'][0],
+                                          self.search_space['rolling_window_size'][1])
+
+        enhanced_df[f'target_rolling_mean_{rolling_window}'] = enhanced_df[self.target].rolling(window=rolling_window).mean()
+        enhanced_df[f'target_rolling_std_{rolling_window}'] = enhanced_df[self.target].rolling(window=rolling_window).std()
+
+        # 계절성 특성 (옵션)
+        use_seasonal = trial.suggest_categorical('use_seasonal_features',
+                                                self.search_space['use_seasonal_features'])
+        if use_seasonal and 'hour' in enhanced_df.columns:
+            enhanced_df['hour_sin'] = np.sin(2 * np.pi * enhanced_df['hour'] / 24)
+            enhanced_df['hour_cos'] = np.cos(2 * np.pi * enhanced_df['hour'] / 24)
+
+            if 'weekday' in enhanced_df.columns:
+                enhanced_df['weekday_sin'] = np.sin(2 * np.pi * enhanced_df['weekday'] / 7)
+                enhanced_df['weekday_cos'] = np.cos(2 * np.pi * enhanced_df['weekday'] / 7)
+
+        # 상호작용 특성 (옵션)
+        use_interaction = trial.suggest_categorical('use_interaction_features',
+                                                   self.search_space['use_interaction_features'])
+        if use_interaction and len(base_features) >= 2:
+            # 첫 번째와 두 번째 특성의 상호작용
+            if base_features[0] in enhanced_df.columns and base_features[1] in enhanced_df.columns:
+                enhanced_df['interaction_1_2'] = enhanced_df[base_features[0]] * enhanced_df[base_features[1]]
+
+        # 결측값 제거
+        enhanced_df = enhanced_df.dropna()
+
+        # 새로 생성된 특성들만 반환
+        new_features = [col for col in enhanced_df.columns if col not in df.columns]
+        print(f"생성된 고급 특성: {new_features}")
+
+        return enhanced_df, base_features + new_features
+
+    def _create_sequences(self, df, features):
+        """Multi-output 시계열 시퀀스 데이터 생성 (step 추가)"""
+        X_list = []
+        y_list = []
+
         # LSTM과 동일하게 step 설정 추가
+        step = self.forecast_horizon  # 24시간씩 점프
 
-        time_step = st.session_state.time_step
-        forecast_horizon = st.session_state.forecast_horizon  # 24시간씩 점프
-        
         # 현재 시점의 특성들을 입력으로 사용
-        for i in range(0, data.shape[0] - time_step - forecast_horizon, forecast_horizon):  # step 추가!
+        for i in range(0, len(df) - self.forecast_horizon, step):  # step 추가!
+            # X: 현재 시점의 특성들
+            X_features = []
+            for feature in features:
+                if feature in df.columns:
+                    X_features.append(df[feature].iloc[i])
+                else:
+                    X_features.append(0)
 
-            X_seq.append(data.iloc[i:i+time_step])
-            y_seq.append(data.iloc[i+time_step:i+time_step+forecast_horizon])
+            X_list.append(X_features)
 
-        return np.array(X_seq), np.array(y_seq)
+            # y: 1~forecast_horizon 시간 후의 모든 타겟값들
+            y_sequence = []
+            for h in range(1, self.forecast_horizon + 1):
+                if i + h < len(df):
+                    y_sequence.append(df[self.target].iloc[i + h])
+                else:
+                    y_sequence.append(df[self.target].iloc[-1])
+
+            y_list.append(y_sequence)
+
+        return np.array(X_list), np.array(y_list)
     
-    def _prepare_data(self):
+    def _prepare_data(self, base_features, trial):
         """XGBoost Multi-output용 데이터 준비"""
         try:
-            if len(st.session_state.train) < 50 or len(st.session_state.test) < 10:
+            # 고급 특성 엔지니어링
+            enhanced_train_df, all_features = self._create_advanced_features(st.session_state.train, base_features, trial)
+            enhanced_test_df, _ = self._create_advanced_features(st.session_state.test, base_features, trial)
+
+            if len(enhanced_train_df) < 50 or len(enhanced_test_df) < 10:
                 return None
 
             # 시퀀스 데이터 생성
-            X_train, y_train = self._create_sequences(st.session_state.train)
-            X_test, y_test = self._create_sequences(st.session_state.test)
-
-            if X_train.ndim == 3:
-                X_train = X_train.reshape(X_train.shape[0], -1)
-            if X_test.ndim == 3:
-                X_test = X_test.reshape(X_test.shape[0], -1)
-            if y_train.ndim == 3:
-                y_train = y_train.reshape(y_train.shape[0], -1)
-            if y_test.ndim == 3:
-                y_test = y_test.reshape(y_test.shape[0], -1)
+            X_train, y_train = self._create_sequences(enhanced_train_df, all_features)
+            X_test, y_test = self._create_sequences(enhanced_test_df, all_features)
 
             if len(X_train) == 0 or len(X_test) == 0:
                 return None
@@ -109,7 +227,7 @@ class XGBoostModel(TimeSeriesModel):
             y_train_scaled = scaler_y.fit_transform(y_train)
             y_test_scaled = scaler_y.transform(y_test)
 
-            return X_train_scaled, X_test_scaled, y_train_scaled, y_test_scaled, scaler_X, scaler_y
+            return X_train_scaled, X_test_scaled, y_train_scaled, y_test_scaled, scaler_X, scaler_y, all_features
 
         except Exception as e:
             print(f"데이터 준비 중 오류: {e}")
@@ -159,14 +277,20 @@ class XGBoostModel(TimeSeriesModel):
     def _objective(self, trial):
         """Optuna 목적 함수"""
         try:
+            # 특성 조합 제안
+            base_features = self._suggest_features(trial)
+
+            if not base_features:
+                print(f"Trial {trial.number}: 선택된 특성이 없음")
+                return 1000.0
+
             # 데이터 준비 (고급 특성 엔지니어링 포함)
-            data_result = self._prepare_data()
-            
+            data_result = self._prepare_data(base_features, trial)
             if data_result is None:
                 print(f"Trial {trial.number}: 데이터 준비 실패")
                 return 1000.0
 
-            X_train, X_test, y_train, y_test, scaler_X, scaler_y = data_result
+            X_train, X_test, y_train, y_test, scaler_X, scaler_y, all_features = data_result
 
             # XGBoost 모델 구축
             model = self._build_model(trial)
@@ -180,6 +304,7 @@ class XGBoostModel(TimeSeriesModel):
             # 스케일 되돌리기
             y_pred = scaler_y.inverse_transform(y_pred_scaled)
             y_test_original = scaler_y.inverse_transform(y_test)
+            y_pred = np.where(y_pred < 0, 0, y_pred)
 
             # 전체 평균 성능 계산
             overall_rmse = np.sqrt(mean_squared_error(y_test_original.flatten(), y_pred.flatten()))
@@ -191,8 +316,11 @@ class XGBoostModel(TimeSeriesModel):
                 return 1000.0
             
             # 결과 저장
+            trial.set_user_attr('base_features', base_features)
+            trial.set_user_attr('all_features', all_features)
             trial.set_user_attr('rmse', overall_rmse)
             trial.set_user_attr('mae', overall_mae)
+            trial.set_user_attr('n_features', len(all_features))
 
             print(f"Trial {trial.number}: RMSE={overall_rmse:.4f}")
 
@@ -247,14 +375,12 @@ class XGBoostModel(TimeSeriesModel):
         if verbose_level > 0:
             print(f"\n최적화 완료!")
             print(f"최적 RMSE: {best_rmse:.4f}")
+            print(f"최적 특성 수: {best_trial.user_attrs.get('n_features', 0)}")
             print(f"최적 파라미터 (주요):")
             important_params = ['n_estimators', 'max_depth', 'learning_rate', 'max_lag_hours']
             for key in important_params:
                 if key in best_params:
                     print(f"  {key}: {best_params[key]}")
-
-        # # 결과 저장
-        # self._save_optuna_results(study)
 
         # 최적 모델로 최종 학습
         best_model_result = self._train_best_model(best_trial)
@@ -268,15 +394,16 @@ class XGBoostModel(TimeSeriesModel):
 
     def _train_best_model(self, best_trial):
         """최적 파라미터로 최종 모델 학습"""
-        try:            
+        try:
+            base_features = best_trial.user_attrs.get('base_features', [])            
             
             # 데이터 준비 (최적 파라미터로)
-            data_result = self._prepare_data()
+            data_result = self._prepare_data(base_features, best_trial)
             
             if data_result is None:
                 return None
             
-            X_train, X_test, y_train, y_test, scaler_X, scaler_y = data_result
+            X_train, X_test, y_train, y_test, scaler_X, scaler_y, all_features = data_result
             
             # 최적 모델 재구축
             model = self._build_model(best_trial)
@@ -288,16 +415,24 @@ class XGBoostModel(TimeSeriesModel):
             y_pred_scaled = model.predict(X_test)
             y_pred = scaler_y.inverse_transform(y_pred_scaled)
             y_test_original = scaler_y.inverse_transform(y_test)
+            
+            y_pred = np.where(y_pred < 0, 0, y_pred)
 
             overall_rmse = np.sqrt(mean_squared_error(y_test_original.flatten(), y_pred.flatten()))
             overall_mae = mean_absolute_error(y_test_original.flatten(), y_pred.flatten())
+            
+            with open('best_xgb_model.pkl', 'wb') as file:
+                pickle.dump(model, file)
 
             return {
                 'model': model,
                 'rmse': overall_rmse,
                 'mae': overall_mae,
+                'base_features': base_features,
+                'all_features': all_features,
                 'best_params': best_trial.params,
                 'scalers': (scaler_X, scaler_y),
+                #  이 두 줄 추가
                 'test_predictions': y_pred.flatten(),
                 'test_actual': y_test_original.flatten()
             }
@@ -320,48 +455,3 @@ class XGBoostModel(TimeSeriesModel):
                     trial_data.update(trial.user_attrs)
                 trials_data.append(trial_data)
         return trials_data
-
-    # def _save_optuna_results(self, study):
-    #     """Optuna 결과 저장"""
-    #     history = self._get_optimization_history(study)
-    #     results_data = {
-    #         'optimization_summary': {
-    #             'best_rmse': study.best_value,
-    #             'best_params': study.best_params,
-    #             'best_features': study.best_trial.user_attrs.get('all_features', []),
-    #             'n_trials': len(study.trials),
-    #             'optimization_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    #         },
-    #         'trials_history': history,
-    #         'search_space': self.search_space
-    #     }
-        
-
-    ## visualize로 독립시키기?
-    # def plot_optimization_history(self, study):
-    #     """최적화 과정 시각화"""
-    #     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-    #     trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-    #     trial_numbers = [t.number for t in trials]
-    #     rmse_values = [t.value for t in trials]
-    #     # 최적화 과정
-    #     ax1.plot(trial_numbers, rmse_values, 'b-', alpha=0.6, marker='o', markersize=4)
-    #     ax1.set_xlabel('Trial Number')
-    #     ax1.set_ylabel('RMSE')
-    #     ax1.set_title('XGBoost Optimization Progress')
-    #     ax1.grid(True)
-    #     # 최적값 누적 업데이트
-    #     best_so_far = []
-    #     current_best = float('inf')
-    #     for rmse in rmse_values:
-    #         if rmse < current_best:
-    #             current_best = rmse
-    #         best_so_far.append(current_best)
-    #     ax2.plot(trial_numbers, best_so_far, 'r-', linewidth=2, marker='o', markersize=4)
-    #     ax2.set_xlabel('Trial Number')
-    #     ax2.set_ylabel('Best RMSE So Far')
-    #     ax2.set_title('Best Performance Progress')
-    #     ax2.grid(True)
-    #     plt.tight_layout()
-    #     plt.savefig(f"{self.result_dir}/xgboost_optimization_history.png", dpi=300, bbox_inches='tight')
-    #     plt.show()

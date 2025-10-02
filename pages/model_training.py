@@ -10,6 +10,7 @@ from backend.model_service import get_model_factory, run_complete_optimization
 from backend.data_service import (
     prepare_train_test_data
 )
+from backend.visualization_service import visualize_forecast_comparison, visualize_metrics_comparison
 
 # 페이지 제목
 st.header("모델 학습 및 예측")
@@ -37,9 +38,9 @@ selected_models, strategy, trial = render_model_selector(model_factory)
 # 모델 학습 버튼
 results = None
 
-col1, col2 = st.columns([3, 1])
+col1, col2 = st.columns([6, 2])
 with col1:
-    if st.button("모델 학습 및 예측 시작", use_container_width=True, type="primary"):
+    if st.button("모델 학습 및 예측 시작", width=True, type="primary"):
         if not selected_models:
             st.warning("최소한 하나의 모델을 선택해주세요.")
         else:
@@ -59,9 +60,47 @@ with col1:
                 st.session_state.file_data = results
 
 with col2:
-    if st.button("결과 초기화", use_container_width=True):
+    if st.button("결과 초기화", width=True):
         reset_model_results()
         st.rerun()
+
+
+# 모델 학습 결과 표시
+if hasattr(st.session_state, 'model_results') and st.session_state.model_results is not None:
+    
+    st.header("모델 예측 결과")
+    st.markdown(' ')
+
+    # 예측 결과 비교 시각화
+    comparison_fig = visualize_forecast_comparison()
+    if comparison_fig:
+        st.plotly_chart(comparison_fig, use_container_width=True, theme="streamlit")
+    else:
+        st.error("예측 결과 시각화에 실패했습니다.")
+    
+    # 메트릭 비교 시각화
+    st.subheader("📈 모델 성능 비교")
+    metrics_fig = visualize_metrics_comparison()
+    if metrics_fig:
+        st.plotly_chart(metrics_fig, use_container_width=True, theme="streamlit")
+    else:
+        st.error("성능 메트릭 시각화에 실패했습니다.")
+    
+    # 메트릭 표 표시
+    st.subheader("📋 모델 성능 메트릭")
+    
+    # 메트릭 데이터프레임 생성
+    metrics_data = {}
+    for model_name, metrics in st.session_state.model_results.items():
+        metrics_data[model_name] = {}
+        metrics_data[model_name]['rmse'] = metrics['result']['best_model']['rmse']
+        metrics_data[model_name]['mae'] = metrics['result']['best_model']['mae'] 
+    
+    metrics_df = pd.DataFrame(metrics_data)
+    st.dataframe(metrics_df.T, use_container_width=True)  # 전치하여 모델별로 행 표시
+
+else:
+    st.info("모델 학습을 진행하여 예측 결과를 확인하세요.")
 
 if st.session_state.file_data is not None:
     st.download_button(
@@ -71,11 +110,20 @@ if st.session_state.file_data is not None:
                         data=st.session_state.file_data,
                         help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)
     
+    # if st.session_state.
     with open("best_lstm_model.h5", "rb") as f:
         st.download_button(
-            label="모델 다운로드",
+            label="LSTM 모델 다운로드",
             data=f,
             file_name="best_lstm_model.h5",
+            mime="application/octet-stream"
+        )
+
+    with open("best_xgb_model.pkl", "rb") as f:
+        st.download_button(
+            label="XGBoost 모델 다운로드",
+            data=f,
+            file_name="best_xgb_model.pkl",
             mime="application/octet-stream"
         )
 
