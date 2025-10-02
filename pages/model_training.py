@@ -38,7 +38,7 @@ selected_models, strategy, trial = render_model_selector(model_factory)
 # 모델 학습 버튼
 results = None
 
-col1, col2 = st.columns([6, 2])
+col1, col2 = st.columns([3, 1])
 with col1:
     if st.button("모델 학습 및 예측 시작", use_container_width=True, type="primary"):
         if not selected_models:
@@ -64,10 +64,43 @@ with col2:
         reset_model_results()
         st.rerun()
 
-
 # 모델 학습 결과 표시
 if hasattr(st.session_state, 'model_results') and st.session_state.model_results is not None:
-    
+
+    with open("best_lstm_model.h5", "rb") as f:
+        st.download_button(
+            label="LSTM 모델 다운로드",
+            data=f,
+            file_name="best_lstm_model.h5",
+            mime="application/octet-stream"
+        )
+
+    with open("best_xgb_model.pkl", "rb") as f:
+        st.download_button(
+            label="XGBoost 모델 다운로드",
+            data=f,
+            file_name="best_xgb_model.pkl",
+            mime="application/octet-stream"
+        )
+
+    # scaler_X 다운로드
+    with open("scaler_X.pkl", "rb") as f:
+        st.download_button(
+            label="Scaler_X 다운로드",
+            data=f,
+            file_name="scaler_X.pkl",
+            mime="application/octet-stream"
+        )
+        
+    # scaler_y 다운로드
+    with open("scaler_y.pkl", "rb") as f:
+        st.download_button(
+            label="Scaler_y 다운로드",
+            data=f,
+            file_name="scaler_y.pkl",
+            mime="application/octet-stream"
+        )
+
     st.header("모델 예측 결과")
     st.markdown(' ')
 
@@ -109,38 +142,3 @@ if st.session_state.file_data is not None:
                         mime="application/json",
                         data=st.session_state.file_data,
                         help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)
-    
-    # if st.session_state.
-    with open("best_lstm_model.h5", "rb") as f:
-        st.download_button(
-            label="LSTM 모델 다운로드",
-            data=f,
-            file_name="best_lstm_model.h5",
-            mime="application/octet-stream"
-        )
-
-    with open("best_xgb_model.pkl", "rb") as f:
-        st.download_button(
-            label="XGBoost 모델 다운로드",
-            data=f,
-            file_name="best_xgb_model.pkl",
-            mime="application/octet-stream"
-        )
-
-    # scaler_X 다운로드
-    with open("scaler_X.pkl", "rb") as f:
-        st.download_button(
-            label="Scaler_X 다운로드",
-            data=f,
-            file_name="scaler_X.pkl",
-            mime="application/octet-stream"
-        )
-
-    # scaler_y 다운로드
-    with open("scaler_y.pkl", "rb") as f:
-        st.download_button(
-            label="Scaler_y 다운로드",
-            data=f,
-            file_name="scaler_y.pkl",
-            mime="application/octet-stream"
-        )
