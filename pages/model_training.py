@@ -101,6 +101,14 @@ if hasattr(st.session_state, 'model_results') and st.session_state.model_results
             mime="application/octet-stream"
         )
 
+    if st.session_state.file_data is not None:
+        st.download_button(
+                            label="Download JSON",
+                            file_name="model_result.json",
+                            mime="application/json",
+                            data=st.session_state.file_data,
+                            help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)
+
     st.header("모델 예측 결과")
     st.markdown(' ')
 
@@ -134,11 +142,3 @@ if hasattr(st.session_state, 'model_results') and st.session_state.model_results
 
 else:
     st.info("모델 학습을 진행하여 예측 결과를 확인하세요.")
-
-if st.session_state.file_data is not None:
-    st.download_button(
-                        label="Download JSON",
-                        file_name="model_result.json",
-                        mime="application/json",
-                        data=st.session_state.file_data,
-                        help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)
