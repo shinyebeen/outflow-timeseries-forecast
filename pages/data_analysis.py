@@ -274,7 +274,7 @@ if st.session_state.series is not None:
         # 주파수 탐지
         ## 📊 푸리에 변환 해석 가이드
         
-        with st.expander("시계열 분해 그래프 해석 방법", expanded=True):
+        with st.expander("주파수 탐지 그래프 해석 방법", expanded=True):
             st.markdown("""
             - **그래프(FFT)** : 시간 데이터가 어떤 주기(주파수) 성분으로 이루어져 있는지 보여줍니다. 그래프의 봉우리가 클수록 해당 주파수가 데이터에 강하게 포함되어 있음을 의미합니다.
             - **주요 주파수 성분 표** : 데이터에서 가장 뚜렷하게 나타나는 상위 3개의 주파수를 표시합니다.
