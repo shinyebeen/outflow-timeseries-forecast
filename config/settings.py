@@ -9,7 +9,7 @@ class AppConfig:
     """
     애플리케이션 설정을 정의하는 데이터 클래스입니다.
     """
-    APP_NAME: str = "배수지 유출유량 예측"
+    APP_NAME: str = "K-water AI 모델 개발"
     VERSION: str = "1.0.0"
 
     # 시각화 설정
