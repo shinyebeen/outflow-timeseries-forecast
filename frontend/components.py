@@ -162,7 +162,7 @@ def render_model_selector(model_factory):
             ["**quick** : 10회 반복 (빠른 테스트용)", "**balanced** : 20회 반복 (균형 잡힌 설정)", "**thorough** : 50회 반복 (철저한 설정)", "**smart** : 단계적 최적화 (빠른 탐색 후 세밀한 조정)", '**custom** : 사용자가 직접 설정']
         )
 
-        col1, _ = st.columns([1, 9])
+        col1, _ = st.columns([2, 8])
 
         trial = None
         with col1:
