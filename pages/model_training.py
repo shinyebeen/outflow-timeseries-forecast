@@ -29,7 +29,7 @@ elif st.session_state.series is None:
 model_factory = get_model_factory()
 
 if model_factory is None:
-    st.error("모델 팩토리 로드에 실패했습니다. pmdarima 호환성 문제일 수 있습니다.")
+    st.error("모델 팩토리 로드에 실패했습니다.")
     st.stop()
 
 # 모델 선택기 렌더링
@@ -110,7 +110,32 @@ if hasattr(st.session_state, 'model_results') and st.session_state.model_results
                             help="모델 학습 결과를 JSON 파일로 다운로드합니다.",)
 
     st.header("모델 예측 결과")
-    st.markdown(' ')
+    
+    if 'best_model' in st.session_state.model_results:
+        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        
+        best_model = st.session_state.model_results['best_model']
+        outflow_avg = st.session_state.df[st.session_state.target].mean()
+        best_mae = st.session_state.model_results[best_model]['mae']
+
+        metric_col1.metric(label="우수 모델", 
+                        value = best_model,
+                        border=True)
+        
+        metric_col2.metric(label="평균유량(m³/h)", 
+                        value = f'{outflow_avg:.2f}',
+                        help="평균 유량을 표시합니다.",
+                        border=True)
+        
+        metric_col3.metric(label="MAE", 
+                        value = f'{best_mae:.2f}',
+                        help="LSTM 모델의 평균 절대 오차(MAE)를 표시합니다.",
+                        border=True)
+        
+        metric_col4.metric(label="오차율(%)", 
+                        value = f'{(best_mae / outflow_avg * 100):.2f}%',
+                        help="평균 유량 대비 MAE의 비율을 백분율로 표시합니다.",
+                        border=True)
 
     # 예측 결과 비교 시각화
     comparison_fig = visualize_forecast_comparison()
@@ -132,7 +157,10 @@ if hasattr(st.session_state, 'model_results') and st.session_state.model_results
     
     # 메트릭 데이터프레임 생성
     metrics_data = {}
-    for model_name, metrics in st.session_state.model_results.items():
+    print(st.session_state.model_results)
+    for model_name, metrics in list(st.session_state.model_results.items()):
+        if model_name == 'best_model':
+            continue
         metrics_data[model_name] = {}
         metrics_data[model_name]['rmse'] = metrics['result']['best_model']['rmse']
         metrics_data[model_name]['mae'] = metrics['result']['best_model']['mae'] 

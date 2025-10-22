@@ -41,8 +41,5 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     st.markdown("**데이터 확인하기**")    
     st.dataframe(st.session_state.df, use_container_width=True, hide_index=True)
 
-    st.dataframe(st.session_state.train, use_container_width=True, hide_index=True)
-    st.dataframe(st.session_state.test, use_container_width=True, hide_index=True)
-
 else:
     st.info("업로드된 데이터가 없습니다. 사이드바에서 CSV 파일을 업로드하세요.")

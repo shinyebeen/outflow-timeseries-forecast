@@ -10,7 +10,6 @@ from utils.visualizer import (cached_plot_timeseries,
                               cached_plot_acf_pacf,
                               cached_plot_fft,
                               cached_plot_decomposition,
-                              cached_plot_differencing_comparison,
                               cached_plot_forecast_comparison,
                               cached_plot_metrics_comparison,
                               cached_plot_residuals,
@@ -75,28 +74,6 @@ def visualize_decomposition():
     if st.session_state.decomposition is not None:
         decomposition_fig = cached_plot_decomposition(st.session_state.decomposition)
         return decomposition_fig
-    
-def visualize_differencing_comparison():
-    """
-    원본 시계열과 차분된 시계열 비교 시각화
-    
-    Returns:
-        plotly.graph_objects.Figure: 차분 비교 그래프
-    """
-    if st.session_state.series is not None and st.session_state.differenced_series is not None:
-        # 차분 정보 텍스트 생성
-        diff_info = f"일반 차분: {st.session_state.diff_order}차"
-        if st.session_state.seasonal_diff_order > 0:
-            diff_info += f", 계절 차분: {st.session_state.seasonal_diff_order}차 (주기: {st.session_state.period})"
-        
-        # 차분 시각화
-        diff_fig = cached_plot_differencing_comparison(
-            st.session_state.series,
-            st.session_state.differenced_series,
-            title=f"차분 비교 ({diff_info})"
-        )
-        return diff_fig
-    return None
 
 def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=None):
     """
@@ -134,7 +111,10 @@ def visualize_forecast_comparison(train_data=None, test_data=None, forecasts=Non
     
     # 유효한 예측 결과만 필터링
     valid_forecasts = {}
-    for model_name, forecast in forecasts.items():
+    for model_name, forecast in list(forecasts.items()):
+
+        if model_name == 'best_model':
+            continue
         
         # 각 모델별 best_model 결과 확인
         if forecast['result']['best_model'] is not None:
@@ -179,7 +159,11 @@ def visualize_metrics_comparison(metrics=None):
     metrics = metrics if metrics is not None else st.session_state.model_results
     metrics_ = {}
 
-    for model_name, results in metrics.items():
+    for model_name, results in list(metrics.items()):
+
+        if model_name == 'best_model':
+            continue
+        
         if 'result' in results and 'best_model' in results['result']:
             metrics_[model_name] = {}
             metrics_[model_name]['rmse'] = results['result']['best_model']['rmse']

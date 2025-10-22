@@ -96,7 +96,7 @@ def _smart_strategy(selected_models, verbose_level=1):
                 }
             else:
                 st.error(f"{model_name} 실패")
-
+  
         except Exception as e:
             st.error(f"{model_name} 오류: {str(e)}")
         
@@ -195,21 +195,6 @@ def _run_all_models_equally(trials, selected_models, verbose_level):
 
     for model_name in selected_models:
         status_text.text(f"\n{model_name} 최적화 중... ({trials} trials)")
-        # try:
-        #     optimizer, result = _run_single_model(model_name, trials, verbose_level)
-        #     if result:
-        #         st.session_state.model_results[model_name] = {
-        #             'optimizer': optimizer,
-        #             'result': result,
-        #             'rmse': _extract_rmse(result),
-        #             'status': 'success'
-        #         }
-        #         print(f"{model_name} 완료 - RMSE: {st.session_state.model_results[model_name]['rmse']:.4f}")
-        #     else:
-        #         print(f"{model_name} 실패")
-        # except Exception as e:
-        #     print(f"{model_name} 오류: {str(e)}")
-
         optimizer, result = _run_single_model(model_name, trials, verbose_level)
 
         if result:
@@ -217,9 +202,12 @@ def _run_all_models_equally(trials, selected_models, verbose_level):
                 'optimizer': optimizer,
                 'result': result,
                 'rmse': _extract_rmse(result),
+                'mae': _extract_mae(result),
                 'status': 'success'
             }
-            print(f"{model_name} 완료 - RMSE: {st.session_state.model_results[model_name]['rmse']:.4f}")
+            print(f"{model_name} 완료")
+            print(f"RMSE: {st.session_state.model_results[model_name]['rmse']:.4f}")
+            print(f"MAE: {st.session_state.model_results[model_name]['mae']:.4f}")
         else:
             print(f"{model_name} 실패")
         
@@ -231,9 +219,6 @@ def _run_all_models_equally(trials, selected_models, verbose_level):
 
     # 결과 저장
     results = _save_complete_results()
-
-    # if verbose_level > 0:
-    #     _create_comprehensive_report()
 
     return final_recommendation, results
 
@@ -294,6 +279,30 @@ def _extract_rmse(result):
     # 유효한 RMSE를 찾지 못하면 무한대 반환
     return float('inf')
 
+def _extract_mae(result):
+    """
+    개별 모델 Optimizer의 결과 딕셔너리에서 MAE를 추출.
+    `result['best_trial'].value`를 안전하게 가져옴.
+    """
+    if isinstance(result, dict):
+        # Case 1: `optimize_with_optuna`가 직접 반환하는 딕셔너리 구조 (예: {'study': ..., 'best_trial': ...})
+        if 'best_trial' in result and result['best_trial'] is not None:
+            return result['best_trial'].user_attrs.get('mae', None)
+        
+        # Case 2: `_run_single_model`에서 반환되어 `self.model_results`에 저장된 중첩된 딕셔너리 구조(smart strategy의 경우)
+        #         (예: {'optimizer': ..., 'result': {'study': ..., 'best_trial': ...}, ...})
+        elif 'result' in result and \
+             isinstance(result['result'], dict) and \
+             result['result'].get('best_trial') is not None:
+            return result['result']['best_trial'].user_attrs.get('mae', None)
+        
+        # Case 3: 직접 'mae' 키가 있는 경우 (예: _train_best_model에서 반환된 'best_model' 딕셔너리)
+        elif 'mae' in result and np.isfinite(result['mae']): # np.isfinite로 무한대/NaN도 체크
+            return result['mae']
+        
+    # 유효한 MAE를 찾지 못하면 무한대 반환
+    return float('inf')
+
 def _generate_final_recommendation():
     """최종 추천 생성"""
     st.text("\n최종 추천 분석 중...")
@@ -307,6 +316,7 @@ def _generate_final_recommendation():
     best_model_name = min(successful_models.keys(),
                          key=lambda x: successful_models[x]['rmse'])
     best_model_rmse = successful_models[best_model_name]['rmse']
+    best_model_mae = successful_models[best_model_name]['mae']
     
     # 추천 결정
     recommendation = {
@@ -314,6 +324,7 @@ def _generate_final_recommendation():
         'best_single_model': {
             'name': best_model_name,
             'rmse': best_model_rmse,
+            'mae': best_model_mae,
             'details': successful_models[best_model_name]
         },
         'all_models_performance': {name: result['rmse'] for name, result in successful_models.items()},
@@ -321,7 +332,8 @@ def _generate_final_recommendation():
             'type': 'single_model',
             'model': best_model_name,
             'reason': f'{best_model_name}이 가장 좋은 성능을 보임',
-            'expected_rmse': best_model_rmse
+            'expected_rmse': best_model_rmse,
+            'expected_mae': best_model_mae
         }
     }
     return recommendation
@@ -412,9 +424,7 @@ def _save_complete_results():
                          key=lambda x: successful_models[x]['rmse'])
     best_result = successful_models[best_model_name] # rmse가 가장 작은 모델 {name : result} 저장
     
-    # print(best_result)
-    
-    print(st.session_state.model_results)
+    st.session_state.model_results['best_model'] = best_model_name
 
     # 최고 성능 모델의 설정만 저장
     best_config = {
@@ -430,6 +440,7 @@ def _save_complete_results():
         'winner': {
             'model_name': best_model_name,
             'rmse': best_result['rmse'],
+            'mae': best_result['mae'],
             'best_params': _extract_best_params(best_result),
             'model_config': _extract_model_config(best_result),
             'performance_advantage': _calculate_advantage(best_result['rmse'], successful_models)
@@ -437,7 +448,8 @@ def _save_complete_results():
         'usage_instructions': {
             'description': f'{best_model_name} 모델이 최고 성능을 달성했습니다.',
             'how_to_reproduce': '위의 best_params를 사용하여 동일한 성능을 재현할 수 있습니다.',
-            'expected_rmse': best_result['rmse']
+            'expected_rmse': best_result['rmse'],
+            'expected_mae': best_result['mae']
         }
     }
 

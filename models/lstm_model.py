@@ -449,11 +449,13 @@ class LSTMModel(TimeSeriesModel):
         best_trial = study.best_trial
         best_params = best_trial.params
         best_rmse = best_trial.value
+        best_mae = best_trial.user_attrs.get('mae', None)  # MAE 값 추가
 
         if verbose_level > 0:
             print(f"\n최적화 완료!")
             print(f"성공한 trials: {len(completed_trials)}/{len(study.trials)}")
             print(f"최적 RMSE: {best_rmse:.4f}")
+            print(f"최적 MAE: {best_mae:.4f}")  # MAE 출력 추가
             print(f"최적 파라미터:")
             for key, value in best_params.items():
                 print(f"  {key}: {value}")
@@ -545,7 +547,8 @@ class LSTMModel(TimeSeriesModel):
             if trial.state == optuna.trial.TrialState.COMPLETE:
                 trial_data = {
                     'trial_number': trial.number,
-                    'rmse': trial.value,
+                    'rmse': trial.value,  # RMSE는 최적화 목표값이므로 trial.value
+                    'mae': trial.user_attrs.get('mae', None),  # MAE는 user_attrs에서 가져오기
                     'params': trial.params
                 }
                 if hasattr(trial, 'user_attrs'):

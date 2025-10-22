@@ -20,8 +20,8 @@ def clear_memory():
     # 가비지 컬렉션 강제 실행
     gc.collect()
     
-    # 필요한 경우 세션 상태 초기화 기능 호출
-    # (주의: 사용자 데이터가 모두 삭제됨)
+    # # 필요한 경우 세션 상태 초기화 기능 호출
+    # # (주의: 사용자 데이터가 모두 삭제됨)
     # from frontend.session_state import reset_data_results
     # reset_data_results()
     
@@ -159,7 +159,12 @@ def render_model_selector(model_factory):
         # 베이지안 최적화(optuna) 반복 횟수 
         strategy = st.radio(
             "베이지안 최적화 반복 횟수",
-            ["**quick** : 10회 반복 (빠른 테스트용)", "**balanced** : 20회 반복 (균형 잡힌 설정)", "**thorough** : 50회 반복 (철저한 설정)", "**smart** : 단계적 최적화 (빠른 탐색 후 세밀한 조정)", '**custom** : 사용자가 직접 설정']
+            ["**quick** : 10회 반복 (빠른 테스트용)", 
+             "**balanced** : 20회 반복 (균형 잡힌 설정)", 
+             "**thorough** : 50회 반복 (철저한 설정)", 
+             "**smart** : 단계적 최적화 (빠른 탐색 후 세밀한 조정)", 
+             '**custom** : 사용자가 직접 설정'
+            ]
         )
 
         col1, _ = st.columns([2, 8])

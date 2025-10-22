@@ -105,22 +105,6 @@ def initialize_session_state():
     if 'optimization_history' not in st.session_state:
         st.session_state.optimization_history = {}
 
-    # 차분 관련 변수들
-    if 'diff_order' not in st.session_state:
-        st.session_state.diff_order = 0
-    if 'seasonal_diff_order' not in st.session_state:
-        st.session_state.seasonal_diff_order = 0
-    if 'use_differencing' not in st.session_state:
-        st.session_state.use_differencing = False
-    if 'differenced_series' not in st.session_state:
-        st.session_state.differenced_series = None
-    if 'differencing_recommendation' not in st.session_state:
-        st.session_state.differencing_recommendation = None
-    if 'diff_train' not in st.session_state:
-        st.session_state.diff_train = None
-    if 'diff_test' not in st.session_state:
-        st.session_state.diff_test = None
-
 def reset_model_results():
     """
     모델 결과를 초기화합니다.
@@ -129,7 +113,6 @@ def reset_model_results():
     st.session_state.forecasts = {}
     st.session_state.metrics = {}
     st.session_state.best_model = None
-    st.session_state.use_differencing = False
     st.session_state.model_results = None
 
 
@@ -148,12 +131,5 @@ def reset_data_results():
     st.session_state.stationarity_result = None
     st.session_state.acf_values = None
     st.session_state.pacf_values = None
-    st.session_state.diff_order = 0
-    st.session_state.seasonal_diff_order = 0
-    st.session_state.use_differencing = False
-    st.session_state.differenced_series = None
-    st.session_state.differencing_recommendation = None
-    st.session_state.diff_train = None
-    st.session_state.diff_test = None
     st.session_state.file_data = None
     reset_model_results()

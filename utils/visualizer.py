@@ -199,131 +199,6 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         )
 
         return fig
-        # # 서브플롯 생성
-        # fig = make_subplots(
-        #     rows=1, cols=2,
-        #     subplot_titles=(
-        #         '자기상관 함수 (Autocorrelation Function)',
-        #         '부분 자기상관 함수 (Partial Autocorrelation Function)'
-        #     )
-        # )
-        
-        # # x축 값 (lags)
-        # x = list(range(len(acf_values)))
-        
-        # # 신뢰 구간 계산 (95%)
-        # confidence = 1.96 / np.sqrt(len(acf_values))
-        
-        # # ACF 플롯 - stem 효과 (마커와 선 조합)
-        # for i in range(len(acf_values)):
-        #     fig.add_trace(
-        #         go.Scatter(
-        #             x=[i, i], 
-        #             y=[0, acf_values[i]], 
-        #             mode='lines',
-        #             line=dict(color='blue', width=1),
-        #             showlegend=False
-        #         ),
-        #         row=1, col=1
-        #     )
-        
-        # # ACF 마커
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=x, 
-        #         y=acf_values, 
-        #         mode='markers',
-        #         marker=dict(color='blue', size=8),
-        #         name='ACF'
-        #     ),
-        #     row=1, col=1
-        # )
-        
-        # # 신뢰 구간 추가
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=[0, len(acf_values)-1],
-        #         y=[confidence, confidence],
-        #         mode='lines',
-        #         line=dict(color='gray', width=1, dash='dash'),
-        #         showlegend=False
-        #     ),
-        #     row=1, col=1
-        # )
-        
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=[0, len(acf_values)-1],
-        #         y=[-confidence, -confidence],
-        #         mode='lines',
-        #         line=dict(color='gray', width=1, dash='dash'),
-        #         showlegend=False
-        #     ),
-        #     row=1, col=1
-        # )
-        
-        # # PACF 플롯 - stem 효과
-        # for i in range(len(pacf_values)):
-        #     fig.add_trace(
-        #         go.Scatter(
-        #             x=[i, i], 
-        #             y=[0, pacf_values[i]], 
-        #             mode='lines',
-        #             line=dict(color='blue', width=1),
-        #             showlegend=False
-        #         ),
-        #         row=1, col=2
-        #     )
-        
-        # # PACF 마커
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=x, 
-        #         y=pacf_values, 
-        #         mode='markers',
-        #         marker=dict(color='blue', size=8),
-        #         name='PACF'
-        #     ),
-        #     row=1, col=2
-        # )
-        
-        # # PACF 신뢰 구간
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=[0, len(pacf_values)-1],
-        #         y=[confidence, confidence],
-        #         mode='lines',
-        #         line=dict(color='gray', width=1, dash='dash'),
-        #         showlegend=False
-        #     ),
-        #     row=1, col=2
-        # )
-        
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=[0, len(pacf_values)-1],
-        #         y=[-confidence, -confidence],
-        #         mode='lines',
-        #         line=dict(color='gray', width=1, dash='dash'),
-        #         showlegend=False
-        #     ),
-        #     row=1, col=2
-        # )
-        
-        # # 레이아웃 업데이트
-        # fig.update_layout(
-        #     height=400,
-        #     margin=dict(l=10, r=10, t=50, b=10),
-        #     showlegend=False,
-        # )
-        
-        # # x축 및 y축 레이블
-        # fig.update_xaxes(title_text='지연 (Lag)', row=1, col=1)
-        # fig.update_xaxes(title_text='지연 (Lag)', row=1, col=2)
-        # fig.update_yaxes(title_text='상관도 (Correlation)', row=1, col=1)
-        # fig.update_yaxes(title_text='상관도 (Correlation)', row=1, col=2)
-        
-        # return fig
     
     def plot_fft(self, 
                  fft_result: dict):
@@ -427,104 +302,7 @@ class TimeSeriesVisualizer(metaclass=Singleton):
 
         fig.update_layout(height=800, showlegend=False, margin=dict(t=40, b=40))
         return fig
-    
-    def plot_differencing_comparison(
-            self, 
-            original_series: pd.Series, 
-            differenced_series: pd.Series,
-            title: str = "차분 비교 (Differencing Comparison)",
-            **kwargs
-        ) -> go.Figure:
-        """
-        원본 시계열과 차분된 시계열 비교 시각화 (Plotly 버전).
-        
-        Args:
-            original_series: 원본 시계열 데이터
-            differenced_series: 차분된 시계열 데이터
-            title: 그래프 제목
-            
-        Returns:
-            Plotly Figure 객체
-        """
-        # 서브플롯 생성
-        fig = make_subplots(
-            rows=2, cols=1,
-            subplot_titles=(
-                '원본 시계열 (Original Time Series)',
-                '차분된 시계열 (Differenced Time Series)'
-            ),
-            shared_xaxes=True,
-            vertical_spacing=0.1
-        )
-        
-        # 원본 시계열 그래프
-        fig.add_trace(
-            go.Scatter(
-                x=original_series.index,
-                y=original_series.values,
-                mode='lines',
-                name='원본 데이터',
-                line=dict(color='blue', width=1.5)
-            ),
-            row=1, col=1
-        )
-        
-        # 차분된 시계열 그래프
-        fig.add_trace(
-            go.Scatter(
-                x=differenced_series.index,
-                y=differenced_series.values,
-                mode='lines',
-                name='차분된 데이터',
-                line=dict(color='red', width=1.5)
-            ),
-            row=2, col=1
-        )
-        
-        # 0 라인 추가 (차분 그래프에만)
-        fig.add_trace(
-            go.Scatter(
-                x=[differenced_series.index.min(), differenced_series.index.max()],
-                y=[0, 0],
-                mode='lines',
-                line=dict(color='black', width=1, dash='dash'),
-                showlegend=False
-            ),
-            row=2, col=1
-        )
-        
-        # 스타일 설정
-        fig.update_layout(
-            title=title,
-            height=600,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            margin=dict(l=10, r=10, t=50, b=10)
-        )
-        
-        # x축 및 y축 레이블
-        fig.update_xaxes(title_text='날짜 (Date)', row=2, col=1)
-        fig.update_yaxes(title_text='값 (Value)', row=1, col=1)
-        fig.update_yaxes(title_text='차분값 (Differenced Value)', row=2, col=1)
-        
-        # 날짜 형식 지정
-        fig.update_xaxes(
-            tickformat="%Y-%m-%d",
-            row=2, col=1
-        )
-        
-        return fig
-    
-    # def plot_forecast_comparison(self,
-    #                         train: pd.Series,
-    #                         test: pd.Series,
-    #                         forecasts: dict[str, np.ndarray],
-                            # **kwargs) -> go.Figure:
+
     def plot_forecast_comparison(self,
                             test: pd.Series,
                             forecasts: dict[str, np.ndarray],
@@ -542,18 +320,7 @@ class TimeSeriesVisualizer(metaclass=Singleton):
         """
         # 그래프 생성
         fig = go.Figure()
-        
-        # # 훈련 데이터
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=train.index,
-        #         y=train.values,
-        #         mode='lines',
-        #         name='Training Data',
-        #         line=dict(color='blue', width=2)
-        #     )
-        # )
-        data_len = 1680 if len(test) > 1680 else len(test)
+        data_len = 336 if len(test) > 336 else len(test) # 336 = 14일 * 24시간
         
         # 테스트 데이터
         fig.add_trace(
@@ -620,12 +387,7 @@ class TimeSeriesVisualizer(metaclass=Singleton):
 
         # 데이터 준비
         models = list(metrics.keys())
-        # metric_names = ['RMSE', 'MAE', 'R^2', 'MAPE']
         metric_names = ['rmse', 'mae']
-        
-        # # 모든 모델에 있는 지표만 선택
-        # available_metrics = set.intersection(*[set(m.keys()) for m in metrics[models[0]]['result']['best_model'].values()])
-        # metric_names = [m for m in metric_names if m in available_metrics]
         
         # 서브플롯 생성
         fig = make_subplots(
@@ -930,13 +692,6 @@ def cached_plot_decomposition(decomposition):
     """계절성 분해 그래프 캐싱"""
     viz = TimeSeriesVisualizer()
     return viz.plot_decomposition(decomposition)
-
-# @st.cache_data(ttl=3600)
-@st.cache_data(ttl=300, max_entries=3)  # 5분 TTL, 최대 3개 캐시
-def cached_plot_differencing_comparison(original_series, differenced_series, title="차분 비교 (Differencing Comparison)"):
-    """차분 비교 그래프 캐싱"""
-    viz = TimeSeriesVisualizer()
-    return viz.plot_differencing_comparison(original_series, differenced_series, title=title)
 
 # @st.cache_data(ttl=3600)
 @st.cache_data(ttl=1800, max_entries=5)  # 30분 TTL, 최대 5개 캐시 (예측 결과는 더 오래 보관)

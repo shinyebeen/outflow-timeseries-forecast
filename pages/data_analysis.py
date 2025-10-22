@@ -3,9 +3,7 @@ import pandas as pd
 import numpy as np
 
 from frontend.components import render_data_outliers
-from frontend.session_state import reset_data_results, reset_model_results
 from backend.data_service import (analyze_outliers, 
-                                  delete_outliers, 
                                   analyze_acf_pacf, 
                                   analyze_stationarity,
                                   analyze_fft,
@@ -18,10 +16,10 @@ from backend.visualization_service import (visualize_boxplot,
 st.header("데이터 분석")
 st.markdown(' ')
 
-tab1, tab2, tab3, tab4 = st.tabs(['이상치 처리', '정상성 판단', '시계열 분해', '주파수 분석'])
+tab1, tab2, tab3, tab4 = st.tabs(['이상치 확인', '정상성 판단', '시계열 분해', '주파수 분석'])
 
 if st.session_state.series is not None:
-    # 이상치 제거 # 박스플롯
+    # 박스플롯
     with tab1:
         outlier_col1, outlier_col2 = st.columns(2)
         
@@ -57,42 +55,6 @@ if st.session_state.series is not None:
                     st.text(f"\n💡 추천: 표준 기준으로 {total_standard}개가 너무 많습니다. 보수적 기준 사용을 권장합니다.")
                 else:
                     st.text(f"\n💡 추천: 표준 기준으로 {total_standard}개 정도면 적당합니다.")
-                
-                # # 이상치가 있을 때만 제거 옵션 표시
-                # if total_standard > 0:
-                #     # 이상치 제거 기준 선택
-                #     st.markdown("#### 이상치 제거 기준 선택")
-                #     options = ['standard', 'conservative'] if too_many_outliers else ['standard']
-                #     selected_criterion = st.radio("제거 기준", options, horizontal=True, label_visibility='collapsed')
-
-                #     if st.button('이상치 제거'):
-                #         try:
-                #             # selected_criterion을 함수에 전달
-                #             cleaned_series = delete_outliers(selected_criterion)
-                            
-                #             if cleaned_series is not None and len(cleaned_series) > 0:
-                #                 st.success(f'이상치 제거 성공!')
-
-                #                 # if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
-                #                 #     reset_data_results()
-                #                 #     reset_model_results()
-                #                 #     st.session_state.df = cleaned_df
-                #                 #     st.rerun()
-                #                 if st.button('앞으로 분석 및 예측에 이상치 제거 데이터 사용하기'):
-                #                     reset_data_results()
-                #                     reset_model_results()
-                #                     st.session_state.series = cleaned_series  # 시계열 데이터 직접 업데이트
-                #                     st.session_state.df[st.session_state.target] = cleaned_series  # target_column은 실제 컬럼명으로 변경 필요
-                #                     st.experimental_rerun()  # 페이지 강제 새로고침
-
-                #             elif len(cleaned_series) == 0:
-                #                 st.info('제거할 이상치가 없습니다.')
-                #             else:
-                #                 st.error('이상치 제거에 실패했습니다.')
-                #         except Exception as e:
-                #             st.error(f'이상치 제거 중 오류 발생: {str(e)}')
-                # else:
-                #     st.info("제거할 이상치가 없습니다.")
             else:
                 st.warning("이상치 분석을 먼저 수행해주세요.")
 
@@ -235,7 +197,7 @@ if st.session_state.series is not None:
     with tab3:
         # 시계열 분해
         # 주기 자동 감지 또는 기본값 사용
-        period = min(24*st.session_state.records_per_hour, len(st.session_state.series)//2)  # 시간별 데이터라 가정하고 24시간 주기
+        period = min(24*st.session_state.records_per_hour, len(st.session_state.series)//2)  # 24 주기
         decomposition = analyze_decomposition(period)
 
         try:
@@ -283,9 +245,7 @@ if st.session_state.series is not None:
             
             👉 즉, 값이 클수록 데이터에서 반복적으로 나타나는 주요 패턴을 설명한다고 볼 수 있습니다. 
         """)
-
-        
-
+            
         fft_result = analyze_fft()
         if fft_result is None:
             st.error("고속푸리에변환 중 오류가 발생했습니다.")

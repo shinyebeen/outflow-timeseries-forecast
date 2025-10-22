@@ -449,6 +449,7 @@ class XGBoostModel(TimeSeriesModel):
                 trial_data = {
                     'trial_number': trial.number,
                     'rmse': trial.value,
+                    'mae': trial.user_attrs.get('mae', None),
                     'params': trial.params
                 }
                 if hasattr(trial, 'user_attrs'):

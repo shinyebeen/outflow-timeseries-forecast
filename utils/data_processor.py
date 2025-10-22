@@ -36,19 +36,6 @@ class DataProcessor(metaclass = Singleton):
         # 시간순으로 정렬
         series = series.sort_index()
 
-        # temp = series.copy()
-
-        # # 이상치를 결측치로 처리 
-        # q1 = temp.quantile(0.25)
-        # q3 = temp.quantile(0.75)
-        # iqr = q3 - q1
-        
-        # # 이상치(Q1 - 1.5*IQR 미만 또는 Q3 + 1.5*IQR 초과)를 NaN으로 처리
-        # series.loc[(series < q1 - 1.5 * iqr) | (series > q3 + 1.5 * iqr)] = np.nan
-
-        # 결측치 처리 (선형 보간)
-        series = series.interpolate(method='time').fillna('ffill').fillna('bfill')
-
         return series 
     
     def analyze_outliers(self, series: pd.Series) -> dict:
@@ -88,25 +75,6 @@ class DataProcessor(metaclass = Singleton):
             'total_standard' : total_standard,
             'total_conservative' : total_conservative
         }
-
-
-    ## 08.22. 이상치 처리 후 적용하는 코드 추가하기
-    # def delete_outliers(self, df, mode):
-    #     temp = df.copy()
-    #     temp.set_index("logTime", inplace=True)
-
-    #     temp[(temp[st.session_state.target] < st.session_state.outliers['lower_'+mode])|(temp[st.session_state.target] > st.session_state.outliers['upper_'+mode])] = np.nan
-    #     temp[st.session_state.target] = temp[st.session_state.target].interpolate(method="time").fillna('ffill').fillna('bfill')
-
-    #     df[st.session_state.target] = temp[st.session_state.target]
-    #     return df 
-    
-    def delete_outliers(self, series, mode):
-        temp = series.copy()
-        temp[(temp < st.session_state.outliers['lower_'+mode])|(temp > st.session_state.outliers['upper_'+mode])] = np.nan
-        cleaned_series = temp.interpolate(method='time').fillna('ffill').fillna('bfill')
-
-        return cleaned_series
     
     def get_acf_pacf(self, 
                     series: pd.Series, 

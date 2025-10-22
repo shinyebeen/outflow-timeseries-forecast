@@ -7,15 +7,13 @@ import holidays
 from frontend.session_state import reset_data_results
 from utils.data_processor import (cached_preprocess_data,
                                  cached_analyze_outliers,
-                                 cached_delete_outliers,
                                  cached_get_acf_pacf,
                                  cached_check_stationarity,
                                  cached_get_fft,
                                  cached_decompose_timeseries,
-                                 cached_recommend_differencing,
-                                 cached_perform_differencing,
                                  cached_train_test_split)
 
+# 시간이 24:00:00 인 경우 날짜를 하루 증가시킴
 def fix_24_hour(time_str):
     s = str(time_str).strip()
     if ' 24:00' in s or s.endswith('24:00:00'):
@@ -140,44 +138,6 @@ def analyze_outliers():
         return result
     return None
 
-## 08.22. 이상치 제거 함수 추가
-# def delete_outliers(mode):
-#     """
-#     이상치 제거 함수 
-#     """
-#     if st.session_state.df is not None:
-#         cleaned_df = cached_delete_outliers(st.session_state.df, mode)
-#         st.session_state.cleaned_df = cleaned_df
-
-#         return cleaned_df
-
-#     return None
-
-def delete_outliers(mode):
-    """
-    이상치 제거 함수 
-    """
-    # if st.session_state.series is not None:
-    #     cleaned_series = cached_delete_outliers(st.session_state.series, mode)
-    #     st.session_state.cleaned_series = cleaned_series 
-
-    #     return cleaned_series 
-    
-    if st.session_state.series is not None:
-        cleaned_series = cached_delete_outliers(st.session_state.series, mode)
-        
-        if cleaned_series is not None:
-            # 원본 시리즈의 인덱스를 사용하여 새로운 시리즈 생성
-            original_index = st.session_state.series.index
-            mask = ~st.session_state.series.index.isin(cleaned_series.index)
-            cleaned_series_with_index = st.session_state.series[~mask]
-            
-            st.session_state.cleaned_series = cleaned_series_with_index
-            return cleaned_series_with_index
-
-
-    return None
-
 def analyze_acf_pacf(nlags=40):
     """
     ACF/PACF 분석 수행
@@ -235,7 +195,7 @@ def analyze_fft():
             st.error(f"고속푸리에변환 중 오류 발생: {str(e)}")
             return None
         
-        return None
+    return None
 
 
 def analyze_decomposition(period=None):
@@ -278,111 +238,3 @@ def safe_len(obj, default=10):
     if obj is not None:
         return len(obj)
     return default
-
-def analyze_differencing_need():
-    """
-    차분 필요성 분석을 수행합니다.
-    
-    Returns:
-        dict: 차분 추천 정보를 담은 딕셔너리
-    """
-    if st.session_state.series is not None:
-        try:
-            # 먼저 ACF, PACF 분석이 있는지 확인
-            if st.session_state.acf_values is None or st.session_state.pacf_values is None:
-                acf_values, pacf_values = analyze_acf_pacf()
-            else:
-                acf_values, pacf_values = st.session_state.acf_values, st.session_state.pacf_values
-                
-            # 차분 추천 실행
-            recommendation = cached_recommend_differencing(st.session_state.series, acf_values, pacf_values)
-            st.session_state.differencing_recommendation = recommendation
-            return recommendation
-        except Exception as e:
-            st.error(f"차분 필요성 분석 중 오류 발생: {str(e)}")
-            return None
-    return None
-
-def perform_differencing(diff_order=None, seasonal_diff_order=None, seasonal_period=None):
-    """
-    시계열 데이터에 차분을 적용합니다.
-    
-    Args:
-        diff_order: 일반 차분 차수 (기본값: None, 추천값 사용)
-        seasonal_diff_order: 계절 차분 차수 (기본값: None, 추천값 사용)
-        seasonal_period: 계절성 주기 (기본값: None, 추천값 사용)
-        
-    Returns:
-        차분된 시계열 데이터
-    """
-    if st.session_state.series is None:
-        return None
-        
-    try:
-        # 파라미터 설정
-        if diff_order is None:
-            if st.session_state.differencing_recommendation:
-                diff_order = st.session_state.differencing_recommendation['diff_order']
-            else:
-                diff_order = st.session_state.diff_order or 0
-                
-        if seasonal_diff_order is None:
-            if st.session_state.differencing_recommendation:
-                seasonal_diff_order = st.session_state.differencing_recommendation['seasonal_diff_order']
-            else:
-                seasonal_diff_order = st.session_state.seasonal_diff_order or 0
-                
-        if seasonal_period is None:
-            if st.session_state.differencing_recommendation and st.session_state.differencing_recommendation['seasonal_period']:
-                seasonal_period = st.session_state.differencing_recommendation['seasonal_period']
-            else:
-                seasonal_period = st.session_state.period
-        
-        # 세션 상태 업데이트
-        st.session_state.diff_order = diff_order
-        st.session_state.seasonal_diff_order = seasonal_diff_order
-        
-        # 차분 실행
-        differenced_series = cached_perform_differencing(
-            st.session_state.series, 
-            diff_order, 
-            seasonal_diff_order, 
-            seasonal_period
-        )
-        
-        st.session_state.differenced_series = differenced_series
-        return differenced_series
-        
-    except Exception as e:
-        st.error(f"차분 적용 중 오류 발생: {str(e)}")
-        return None
-
-def prepare_differenced_train_test_data(test_size=None):
-    """
-    차분된 시계열 데이터를 훈련/테스트 세트로 분할합니다.
-    
-    Args:
-        test_size: 테스트 데이터 비율 (기본값: None, 세션 상태 사용)
-        
-    Returns:
-        bool: 성공 여부
-    """
-    if test_size is None:
-        test_size = st.session_state.test_size
-        
-    # if st.session_state.differenced_series is not None:
-    #     st.session_state.diff_train, st.session_state.diff_test = cached_train_test_split(
-    #         st.session_state.differenced_series, 
-    #         test_size
-    #     )
-        
-        
-    # return False
-    # 원본 데이터도 함께 분할 (시각화용)
-    if st.session_state.df is not None:
-        st.session_state.train, st.session_state.test = cached_train_test_split(
-            st.session_state.df,
-            test_size
-        )
-        
-    return True
